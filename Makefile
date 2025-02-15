@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -g -std=c11 -pedantic -Wall -Wextra
-# CFLAGS = -g -std=c11 -pedantic -Wall -Wextra -Werror
+CFLAGS = -g -pedantic -Wall -Wextra -pthread -O2 -std=c11
+# CFLAGS = -g -pedantic -Wall -Wextra -pthread -Werror
 
 TARGET = main
 SRC = main.c
