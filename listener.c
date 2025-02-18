@@ -4,6 +4,9 @@
 //
 // SOURCE: https://beej.us/guide/bgnet/html/split/client-server-background.html
 
+#define _POSIX_C_SOURCE 200112L
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

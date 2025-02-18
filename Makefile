@@ -1,18 +1,28 @@
 CC = gcc
 CFLAGS = -g -pedantic -Wall -Wextra -pthread -O2 -std=c11
-# CFLAGS = -g -pedantic -Wall -Wextra -pthread -Werror
-
+DCFLAGS = -g -pedantic -Wall -Wextra -pthread -O2 -std=c11 -DDEBUG_PRINT
 TARGET = main
-SRC = main.c
+
+SRCDIR = src
+
+SOURCES = $(wildcard $(SRCDIR)/*.c)
+
+OBJECTS = $(SOURCES:.c=.o)
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+debug: CFLAGS = $(DCFLAGS)
+debug: clean $(TARGET)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJECTS)
 
 rebuild: clean all
 
-.PHONY: all clean rebuild
+.PHONY: all clean rebuild debug
