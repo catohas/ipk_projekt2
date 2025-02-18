@@ -656,34 +656,112 @@ static void *get_in_addr(struct sockaddr *sa)
 }
 */
 
-// static void auth_cmd(char *input)
-// {
-
-// }
-
-// static void join_cmd(char *input)
-// {
-
-// }
-
-// static void rename_cmd(char *input)
-// {
-
-// }
-
 char *line = NULL;
 int sockfd = -1;
 struct addrinfo hints, *servinfo, *p;
 
-static void cleanup()
+int use_tcp_protocol = -1;
+char *hostname = NULL;
+char *port = "4567";
+uint16_t udp_timeout = 250;
+uint8_t udp_retransmissions = 3;
+
+static void auth_cmd(void)
 {
-    printf("cleaning up...\n");
-    free(line);
-    freeaddrinfo(servinfo);
-    if (sockfd != -1) {
-        close(sockfd);
+    char username[MAX_USERNAME_LEN] = {0};
+    char display_name[MAX_DISPLAY_NAME_LEN] = {0};
+    char secret[MAX_SECRET_LEN] = {0};
+
+    // username[MAX_USERNAME_LEN] = '\0';
+    // display_name[MAX_DISPLAY_NAME_LEN] = '\0';
+    // secret[MAX_SECRET_LEN] = '\0';
+
+    line = strtok(NULL, " "); // get rid of /auth
+    if (line == NULL) {
+        fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
+        return;
     }
-    exit(EXIT_SUCCESS);
+    memcpy(username, line, strlen(line));
+
+    line = strtok(NULL, " ");
+    if (line == NULL) {
+        fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
+        return;
+    }
+    memcpy(display_name, line, strlen(line));
+
+    line = strtok(NULL, " ");
+    if (line == NULL) {
+        fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
+        return;
+    }
+    memcpy(secret, line, strlen(line));
+
+    // line = NULL;
+
+    int rv;
+    int numbytes;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    
+    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return;
+    }
+
+    for (p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+
+        /*
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("client: connect");
+            continue;
+        }
+        */
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to create socket\n");
+        return;
+    }
+
+    // struct Auth_MSG *packet = malloc(sizeof(struct Auth_MSG));
+    struct Auth_MSG auth_msg;
+    create_auth_msg(&auth_msg, username, display_name, secret);
+    size_t buffer_size;
+    uint8_t *buffer = serialize_auth_msg(&auth_msg, &buffer_size);
+
+    printf("size of struct: %zu\n", buffer_size);
+
+    if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("client: sendto");
+        exit(EXIT_FAILURE);
+    }
+
+    free(buffer);
+
+    printf("sent %d bytes to %s\n", numbytes, hostname);
+
+
+
+}
+
+static void join_cmd(void)
+{
+
+}
+
+static void rename_cmd(void)
+{
+
 }
 
 static void help_cmd(void)
@@ -691,11 +769,29 @@ static void help_cmd(void)
     printf("flags: -t -s -p -d -r -h\n");
 }
 
+static void cleanup()
+{
+    printf("\ncleaning up...\n");
+    // free(line);
+    freeaddrinfo(servinfo);
+    if (sockfd != -1) {
+        close(sockfd);
+    }
+    exit(EXIT_SUCCESS);
+}
+
 const char *commands[] = {
     "/auth",
     "/join",
     "/rename",
     "/help"
+};
+
+void (*command_functions[4])(void) = {
+    auth_cmd,
+    join_cmd,
+    rename_cmd,
+    help_cmd
 };
 
 int main(int argc, char *argv[])
@@ -708,11 +804,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    int use_tcp_protocol = -1;
-    char *hostname = NULL;
-    char *port = "4567";
-    uint16_t udp_timeout = 250;
-    uint8_t udp_retransmissions = 3;
+    // int use_tcp_protocol = -1;
+    // char *hostname = NULL;
+    // char *port = "4567";
+    // uint16_t udp_timeout = 250;
+    // uint8_t udp_retransmissions = 3;
 
     if (argc == 1) {
         fprintf(stderr, "please provide a -t flag value, 'tcp' or 'udp'\n");
@@ -745,14 +841,12 @@ int main(int argc, char *argv[])
 
         for (size_t i = 0; i < ARRAY_SIZE(commands); i++) {
             if (strcmp(token, commands[i]) == 0) {
-                printf("'%s' matches command '%s'\n", token, commands[i]);
+                (*command_functions[i])();
             }
         }
 
-        printf("\'%s\'\n", token);
+        // printf("\'%s\'\n", token);
     }
-
-
 
 
     // int sockfd;
@@ -805,11 +899,12 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    freeaddrinfo(servinfo);
-
     printf("sent %d bytes to %s\n", numbytes, hostname);
 
-    close(sockfd);
+    // freeaddrinfo(servinfo);
 
-    return EXIT_SUCCESS;
+
+    // close(sockfd);
+
+    // return EXIT_SUCCESS;
 }
