@@ -668,9 +668,13 @@ uint8_t udp_retransmissions = 3;
 
 static void auth_cmd(void)
 {
-    char username[MAX_USERNAME_LEN] = {0};
-    char display_name[MAX_DISPLAY_NAME_LEN] = {0};
-    char secret[MAX_SECRET_LEN] = {0};
+    // char username[MAX_USERNAME_LEN] = {0};
+    // char display_name[MAX_DISPLAY_NAME_LEN] = {0};
+    // char secret[MAX_SECRET_LEN] = {0};
+
+    char *username = malloc(MAX_USERNAME_LEN * sizeof(char));
+    char *display_name = malloc(MAX_DISPLAY_NAME_LEN * sizeof(char));
+    char *secret = malloc(MAX_SECRET_LEN * sizeof(char));
 
     // username[MAX_USERNAME_LEN] = '\0';
     // display_name[MAX_DISPLAY_NAME_LEN] = '\0';
@@ -681,21 +685,21 @@ static void auth_cmd(void)
         fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
         return;
     }
-    memcpy(username, line, strlen(line));
+    memcpy(username, line, strlen(line)); // bug
 
     line = strtok(NULL, " ");
     if (line == NULL) {
         fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
         return;
     }
-    memcpy(display_name, line, strlen(line));
+    memcpy(display_name, line, strlen(line)); // bug
 
     line = strtok(NULL, " ");
     if (line == NULL) {
         fprintf(stderr, "Please provide 'username' 'display_name' 'secret'\n");
         return;
     }
-    memcpy(secret, line, strlen(line));
+    memcpy(secret, line, strlen(line)); // bug
 
     // line = NULL;
 
@@ -733,7 +737,6 @@ static void auth_cmd(void)
         return;
     }
 
-    // struct Auth_MSG *packet = malloc(sizeof(struct Auth_MSG));
     struct Auth_MSG auth_msg;
     create_auth_msg(&auth_msg, username, display_name, secret);
     size_t buffer_size;
@@ -747,6 +750,9 @@ static void auth_cmd(void)
     }
 
     free(buffer);
+    free(username);
+    free(display_name);
+    free(secret);
 
     printf("sent %d bytes to %s\n", numbytes, hostname);
 
@@ -787,7 +793,7 @@ const char *commands[] = {
     "/help"
 };
 
-void (*command_functions[4])(void) = {
+void (*command_functions[])(void) = {
     auth_cmd,
     join_cmd,
     rename_cmd,
@@ -852,54 +858,54 @@ int main(int argc, char *argv[])
     // int sockfd;
     // struct addrinfo hints, *servinfo, *p;
     // char s[INET_ADDRSTRLEN];
-    int rv;
-    int numbytes;
+    // int rv;
+    // int numbytes;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
+    // memset(&hints, 0, sizeof hints);
+    // hints.ai_family = AF_INET;
+    // hints.ai_socktype = SOCK_DGRAM;
     
-    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return EXIT_FAILURE;
-    }
+    // if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
+    //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    //     return EXIT_FAILURE;
+    // }
 
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("client: socket");
-            continue;
-        }
+    // for (p = servinfo; p != NULL; p = p->ai_next) {
+    //     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+    //         perror("client: socket");
+    //         continue;
+    //     }
 
-        /*
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("client: connect");
-            continue;
-        }
-        */
+    //     /*
+    //     if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+    //         close(sockfd);
+    //         perror("client: connect");
+    //         continue;
+    //     }
+    //     */
 
-        break;
-    }
+    //     break;
+    // }
 
-    if (p == NULL) {
-        fprintf(stderr, "client: failed to create socket\n");
-        return EXIT_FAILURE;
-    }
+    // if (p == NULL) {
+    //     fprintf(stderr, "client: failed to create socket\n");
+    //     return EXIT_FAILURE;
+    // }
 
-    // struct Auth_MSG *packet = malloc(sizeof(struct Auth_MSG));
-    struct Auth_MSG auth_msg;
-    create_auth_msg(&auth_msg, "user1", "UDP_Man-1", "secret1");
-    size_t buffer_size;
-    uint8_t *buffer = serialize_auth_msg(&auth_msg, &buffer_size);
+    // // struct Auth_MSG *packet = malloc(sizeof(struct Auth_MSG));
+    // struct Auth_MSG auth_msg;
+    // create_auth_msg(&auth_msg, "user1", "UDP_Man-1", "secret1");
+    // size_t buffer_size;
+    // uint8_t *buffer = serialize_auth_msg(&auth_msg, &buffer_size);
 
-    printf("size of struct: %zu\n", buffer_size);
+    // printf("size of struct: %zu\n", buffer_size);
 
-    if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("client: sendto");
-        exit(EXIT_FAILURE);
-    }
+    // if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+    //     perror("client: sendto");
+    //     exit(EXIT_FAILURE);
+    // }
 
-    printf("sent %d bytes to %s\n", numbytes, hostname);
+    // printf("sent %d bytes to %s\n", numbytes, hostname);
 
     // freeaddrinfo(servinfo);
 
