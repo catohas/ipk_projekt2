@@ -103,6 +103,25 @@ int main(void)
     } 
     printf("\n");
 
+    // if ((numbytes = sendto(sockfd, buf, MAXBUFLEN-1, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+    //     perror("listener: failed to repeat");
+    //     exit(1);
+    // }
+    // else {
+    //     printf("sent %d bytes", numbytes);
+    // }
+
+    if ((numbytes = sendto(sockfd, buf, numbytes, 0,
+        (struct sockaddr *)&their_addr, addr_len)) == -1) {
+        perror("listener: failed to repeat");
+        exit(1);
+    } else {
+        printf("sent %d bytes to %s\n", numbytes,
+            inet_ntop(their_addr.ss_family,
+                        get_in_addr((struct sockaddr *)&their_addr),
+                        s, sizeof s));
+    }
+
     // printf("listener: packet contains \"%s\"\n", buf);
 
     close(sockfd);
