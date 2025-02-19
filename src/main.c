@@ -53,7 +53,7 @@ uint8_t udp_retransmissions = 3;
 
 static void cleanup()
 {
-    printf_debug_simple("\ncleaning up...");
+    printf_debug_simple("cleaning up...");
     // free(line);
     freeaddrinfo(servinfo);
     if (sockfd != -1) {
