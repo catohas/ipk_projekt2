@@ -1,0 +1,7 @@
+- check that only allowed things are printed to stdout
+- make sure author header is in all files
+- improve help message
+
+- when user enters more than 1000 msec convert to sec and msec
+- free buffer after sending in network_udp
+- make network_udp return buffer with response i guess
