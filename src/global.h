@@ -12,6 +12,10 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include "./state.h"
+
+extern enum APP_STATE state;
+
 extern char *line;
 extern int sockfd;
 extern struct addrinfo hints, *servinfo, *p;
