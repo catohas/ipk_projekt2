@@ -1,4 +1,6 @@
+#include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 #include "./messages.h"
 #include "./serialize.h" 

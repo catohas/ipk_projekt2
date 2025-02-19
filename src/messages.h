@@ -8,6 +8,15 @@
 
 #include <stdint.h>
 
+struct Auth_MSG;
+struct Confirm_MSG;
+struct Reply_MSG;
+struct Join_MSG;
+struct MSG;
+struct Err_MSG;
+struct Bye_MSG;
+struct Ping_MSG;
+
 void create_confirm_msg(struct Confirm_MSG *confirm_msg, uint16_t ref_message_id);
 void create_reply_msg(struct Reply_MSG *reply_msg, uint16_t message_id, uint8_t result, uint16_t ref_message_id, char *message_contents);
 void create_auth_msg(struct Auth_MSG *auth_msg, char *username, char *display_name, char *secret);
@@ -29,7 +38,7 @@ enum MSG_TYPE
     BYE,
 };
 
-const uint8_t MSG_TYPE_VAL[] = {
+static const uint8_t MSG_TYPE_VAL[] = {
     0x00,
     0x01,
     0x02,

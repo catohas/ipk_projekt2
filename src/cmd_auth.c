@@ -1,8 +1,11 @@
-#include <stdio.h>
+#define _POSIX_C_SOURCE 200112L
+#define _DEFAULT_SOURCE
+
+#include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #include "./commands.h"
+#include "./debug.h"
 #include "./maximums.h"
 #include "./messages.h"
 #include "./global.h"

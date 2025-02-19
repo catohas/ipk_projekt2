@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "./commands.h"
 
 void cmd_help(void)

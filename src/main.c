@@ -22,6 +22,7 @@
 #include "./args.h"
 #include "./commands.h"
 #include "./debug.h"
+#include "./global.h"
 #include "./maximums.h"
 #include "./messages.h"
 #include "./serialize.h"
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     if (argc == 1) {
         fprintf(stderr, "please provide a -t flag value, 'tcp' or 'udp'\n");
         fprintf(stderr, "please provide a -s flag value, hostname\n\n");
-        help_cmd();
+        cmd_help();
         exit(EXIT_SUCCESS);
     }
 

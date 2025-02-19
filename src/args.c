@@ -1,6 +1,9 @@
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
-#include "args.h"
+#include "./args.h"
+#include "./commands.h"
 
 void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, char **port, uint16_t *udp_timeout, uint8_t *udp_retransmissions)
 {
@@ -79,7 +82,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         }
 
         if (strcmp(argv[i], "-h") == 0) {
-            help_cmd();
+            cmd_help();
         }
     }
 }
