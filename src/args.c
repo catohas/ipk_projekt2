@@ -12,7 +12,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         if (strcmp(argv[i], "-t") == 0) {
             i++;
             if (i >= argc) {
-                printf("-t flag expects argument 'tcp' or 'udp'\n");
+                fprintf(stderr, "-t flag expects argument 'tcp' or 'udp'\n");
                 exit(EXIT_SUCCESS);
             }
             else if (strcmp(argv[i], "tcp") == 0) {
@@ -22,7 +22,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
                 *use_tcp_protocol = 0;
             }
             else {
-                printf("invalid -t flag argument, expected 'tcp' or 'udp'\n");
+                fprintf(stderr, "invalid -t flag argument, expected 'tcp' or 'udp'\n");
                 exit(EXIT_SUCCESS);
             }
         }
@@ -30,7 +30,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         if (strcmp(argv[i], "-s") == 0) {
             i++;
             if (i >= argc) {
-                printf("-s flag expects argument of ip or hostname\n");
+                fprintf(stderr, "-s flag expects argument of ip or hostname\n");
                 exit(EXIT_SUCCESS);
             }
             *hostname = argv[i];
@@ -39,7 +39,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         if (strcmp(argv[i], "-p") == 0) {
             i++;
             if (i >= argc) {
-                printf("-p flag expects argument of port number\n");
+                fprintf(stderr, "-p flag expects argument of port number\n");
                 exit(EXIT_SUCCESS);
             }
             *port = argv[i];
@@ -48,7 +48,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         if (strcmp(argv[i], "-d") == 0) {
             i++;
             if (i >= argc) {
-                printf("-d flag expects argument of udp confirmation timeout\n");
+                fprintf(stderr, "-d flag expects argument of udp confirmation timeout\n");
                 exit(EXIT_SUCCESS);
             }
             
@@ -56,7 +56,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
             long converted_timeout = strtol(argv[i], &endptr, 10);
 
             if (strcmp(endptr, "\0") != 0) {
-                printf("invalid udp confirmation timeout value\n");
+                fprintf(stderr, "invalid udp confirmation timeout value\n");
                 exit(EXIT_SUCCESS);
             }
 
@@ -66,7 +66,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
         if (strcmp(argv[i], "-r") == 0) {
             i++;
             if (i >= argc) {
-                printf("-r flag expects argument of max number of udp retransmissions\n");
+                fprintf(stderr, "-r flag expects argument of max number of udp retransmissions\n");
                 exit(EXIT_SUCCESS);
             }
 
@@ -74,7 +74,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
             long converted_retrans = strtol(argv[i], &endptr, 10);
 
             if (strcmp(endptr, "\0") != 0) {
-                printf("invalid udp retransmissions value\n");
+                fprintf(stderr, "invalid udp retransmissions value\n");
                 exit(EXIT_SUCCESS);
             }
 
