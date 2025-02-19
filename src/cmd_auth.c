@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "./commands.h"
 #include "./debug.h"
@@ -79,15 +80,42 @@ void cmd_auth(void)
     size_t buffer_size;
     uint8_t *buffer = serialize_auth_msg(&auth_msg, &buffer_size);
 
-    printf_debug("size of struct: %zu", buffer_size);
+    printf_debug("size of struct before sending: %zu", buffer_size);
 
-    if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("client: sendto");
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = udp_timeout*1000; // msec to usec
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt failed");
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
 
+    int retries = 0;
+    while (retries < udp_retransmissions) {
+        if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+            perror("client: sendto");
+            exit(EXIT_FAILURE);
+        }
+        else {
+            printf_debug("sent %d bytes to %s", numbytes, hostname);
+
+            socklen_t addr_len = sizeof(hostname);
+            // should use a different buffer
+            int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, p->ai_addr, &(p->ai_addrlen));
+            if (n >= 0) {
+                buffer[n] = '\0';
+                printf("Received response: %s\n", buffer);
+                break;
+            }
+            else {
+                perror("recvfrom");
+            }
+
+        }
+        retries++;
+        printf_debug("retrying... (%d/%d)", retries, udp_retransmissions);
+    }
+
     free(buffer);
-
-    printf_debug("sent %d bytes to %s", numbytes, hostname);
-
 }
