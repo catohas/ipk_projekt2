@@ -25,21 +25,13 @@
 #include "./global.h"
 #include "./maximums.h"
 #include "./messages.h"
+#include "./state.h"
 #include "./serialize.h"
 #include "./deserialize.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-enum APP_STATE
-{
-    STATE_AUTH,
-    STATE_JOIN,
-    STATE_ERR,
-    STATE_BYE,
-    STATE_MSG,
-    STATE_REPLY,
-    STATE_NEG_REPLY,
-};
+enum APP_STATE state = STATE_AUTH;
 
 char *line = NULL;
 int sockfd = -1;
@@ -53,7 +45,7 @@ uint8_t udp_retransmissions = 3;
 
 static void cleanup()
 {
-    printf_debug_simple("cleaning up...");
+    printf_debug_simple(COLOR_INFO, "cleaning up...");
     // free(line);
     freeaddrinfo(servinfo);
     if (sockfd != -1) {
@@ -71,12 +63,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to register cleanup function.\n");
         exit(EXIT_FAILURE);
     }
-
-    // int use_tcp_protocol = -1;
-    // char *hostname = NULL;
-    // char *port = "4567";
-    // uint16_t udp_timeout = 250;
-    // uint8_t udp_retransmissions = 3;
 
     if (argc == 1) {
         fprintf(stderr, "please provide a -t flag value, 'tcp' or 'udp'\n");
