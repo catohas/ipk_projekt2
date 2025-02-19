@@ -4,24 +4,27 @@ DCFLAGS = -g -pedantic -Wall -Wextra -pthread -O2 -std=c11 -DDEBUG_PRINT
 TARGET = main
 
 SRCDIR = src
+BUILDDIR = $(SRCDIR)/build
 
 SOURCES = $(wildcard $(SRCDIR)/*.c)
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SOURCES))
 
-OBJECTS = $(SOURCES:.c=.o)
+MAKEFLAGS += -j
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
-%.o: %.c
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 debug: CFLAGS = $(DCFLAGS)
 debug: clean $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+	rm -f $(TARGET) $(BUILDDIR)/*.o
 
 rebuild: clean all
 
