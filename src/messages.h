@@ -51,15 +51,6 @@ static const uint8_t MSG_TYPE_VAL[] = {
 
 #pragma pack(1)
 
-struct Auth_MSG
-{
-    uint8_t type;
-    uint16_t message_id;
-    char *username;
-    char *display_name;
-    char *secret;
-};
-
 struct Confirm_MSG
 {
     uint8_t type;
@@ -73,6 +64,15 @@ struct Reply_MSG
     uint8_t result;
     uint16_t ref_message_id;
     char *message_contents;
+};
+
+struct Auth_MSG
+{
+    uint8_t type;
+    uint16_t message_id;
+    char *username;
+    char *display_name;
+    char *secret;
 };
 
 struct Join_MSG
@@ -91,6 +91,12 @@ struct MSG
     char *message_contents;
 };
 
+struct Ping_MSG
+{
+    uint8_t type;
+    uint16_t message_id;
+};
+
 struct Err_MSG
 {
     uint8_t type;
@@ -104,12 +110,6 @@ struct Bye_MSG
     uint8_t type;
     uint16_t message_id;
     char *display_name;
-};
-
-struct Ping_MSG
-{
-    uint8_t type;
-    uint16_t message_id;
 };
 
 #pragma pack()
