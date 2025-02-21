@@ -304,7 +304,8 @@ uint8_t *serialize_ping_msg(struct Ping_MSG *ping_msg, size_t *out_size)
     memcpy(buffer + offset, &ping_msg->type, sizeof(ping_msg->type));
     offset += sizeof(ping_msg->type);
 
-    memcpy(buffer + offset, &ping_msg->message_id, sizeof(ping_msg->message_id));
+    uint16_t net_message_id = htons(ping_msg->message_id);
+    memcpy(buffer + offset, &net_message_id, sizeof(net_message_id));
 
     return buffer;
 }
