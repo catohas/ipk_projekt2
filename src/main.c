@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
@@ -51,7 +52,7 @@ static void cleanup()
     if (sockfd != -1) {
         close(sockfd);
     }
-    exit(EXIT_SUCCESS);
+    // exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
@@ -90,14 +91,22 @@ int main(int argc, char *argv[])
         line[strlen(line)-1] = '\0'; // overwrite newline with null char
 
         if (line[0] == '\0') continue; // when the user presses only enter
-
+        
+        bool command_ran = false;
         char *token = strtok(line, " ");
 
         for (size_t i = 0; i < ARRAY_SIZE(commands); i++) {
             if (strcmp(token, commands[i]) == 0) {
                 (*command_functions[i])();
+                command_ran = true;
+                break;
             }
         }
+
+        if (!command_ran) {
+            cmd_msg();
+        }
+
     }
 
 }
