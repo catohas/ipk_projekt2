@@ -21,7 +21,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 debug: CFLAGS = $(DCFLAGS)
-debug: clean $(TARGET)
+debug: $(TARGET)
 
 clean:
 	rm -f $(TARGET) $(BUILDDIR)/*.o
