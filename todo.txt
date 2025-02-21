@@ -11,3 +11,4 @@
 - make network_udp return buffer with response i guess
 
 - add deserialization and free functions to header file
+- validate input
