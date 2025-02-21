@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+void cmd_msg(void);
 void cmd_auth(void);
 void cmd_join(void);
 void cmd_rename(void);
