@@ -1,7 +1,13 @@
 - check that only allowed things are printed to stdout
 - make sure author header is in all files
 - improve help message
+- remove posix header from unneedeed files
 
 - when user enters more than 1000 msec convert to sec and msec
 - free buffer after sending in network_udp
+- check that all mallocs are being freed
+- check the getline function
+- validate input for every command (if it is wrong ignore or warn user, based on assignment)
 - make network_udp return buffer with response i guess
+
+- add deserialization and free functions to header file
