@@ -7,11 +7,12 @@
 
 #include "./debug.h"
 #include "./global.h"
+#include "./maximums.h"
 #include "./messages.h"
 #include "./network.h"
 #include "./serialize.h"
 
-void send_network_msg_udp(uint8_t *buffer, size_t buffer_size)
+uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
 {
     int rv;
     int numbytes;
@@ -22,67 +23,68 @@ void send_network_msg_udp(uint8_t *buffer, size_t buffer_size)
     
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return;
+        free(in_buffer);
+        exit(EXIT_FAILURE);
     }
 
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             perror("client: socket");
-            continue;
+            free(in_buffer);
+            exit(EXIT_FAILURE);
         }
         break;
     }
 
     if (p == NULL) {
         fprintf(stderr, "client: failed to create socket\n");
-        return;
+        free(in_buffer);
+        exit(EXIT_FAILURE);
     }
 
-    printf_debug(COLOR_INFO, "size of struct before sending: %zu", buffer_size);
+    printf_debug(COLOR_INFO, "size of struct before sending: %zu bytes", in_buffer_size);
 
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = udp_timeout*1000; // msec to usec
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         perror("setsockopt failed");
-        close(sockfd);
+        free(in_buffer);
         exit(EXIT_FAILURE);
     }
 
-    int retries = 0;
-    while (retries < udp_retransmissions) {
-        if ((numbytes = sendto(sockfd, buffer, buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+    int total_tries = 0;
+    while (total_tries <= udp_retransmissions) {
+        printf_debug(COLOR_INFO, "try number: (%d/%d)", total_tries, udp_retransmissions);
+        total_tries++;
+        if ((numbytes = sendto(sockfd, in_buffer, in_buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
             perror("client: sendto");
+            free(in_buffer);
             exit(EXIT_FAILURE);
         }
         else {
             printf_debug(COLOR_INFO, "sent %d bytes to %s", numbytes, hostname);
 
-            socklen_t addr_len = sizeof(hostname);
-            char test_buffer[32] = {0};
-            int n = recvfrom(sockfd, test_buffer, sizeof(test_buffer), 0, p->ai_addr, &(p->ai_addrlen));
-            if (n >= 0) {
-                // test_buffer[n] = '\0';
-                fprintf(stderr, "Received response: %s\n", test_buffer);
-                fprintf(stderr, "'");
-                for (int i = 0; i < 30; i++) {
-                    fprintf(stderr, "%c", test_buffer[i]);
-                }
-                fprintf(stderr, "'\n");
-                for (int i = 0; i < 30; i++) {
-                    fprintf(stderr, "%02x ", (unsigned char)test_buffer[i]);
-                } 
-                fprintf(stderr, "\n");
-                return;
-            }
-            else {
+            uint8_t recv_buffer[MAX_PACKET_SIZE] = {0};
+            if (recvfrom(sockfd, recv_buffer, MAX_PACKET_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
                 perror("recvfrom");
+                continue;
             }
 
+            uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_PACKET_SIZE);
+            if (return_recv_buffer == NULL) {
+                perror("failed to allocate return buffer");
+                free(in_buffer);
+                exit(EXIT_FAILURE);
+            }
+            memcpy(return_recv_buffer, recv_buffer, MAX_PACKET_SIZE);
+
+            free(in_buffer);
+
+            return return_recv_buffer;
         }
-        retries++;
-        printf_debug(COLOR_INFO, "retrying... (%d/%d)", retries, udp_retransmissions);
     }
 
-    free(buffer);
+    free(in_buffer);
+    return NULL;
 }

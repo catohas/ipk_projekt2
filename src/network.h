@@ -3,6 +3,6 @@
 
 #include "./global.h"
 
-void send_network_msg_udp(uint8_t *buffer, size_t buffer_size);
+uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size);
 
 #endif
