@@ -7,7 +7,7 @@
 void state_auth_logic(cmd_ptr cmd)
 {
     if (cmd == cmd_auth){
-        uint8_t* response = cmd();
+        cmd();
     }
     else if (cmd == cmd_join) {
         printf("ERROR: trying to join channel while not authenticated\n");
