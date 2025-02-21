@@ -12,4 +12,7 @@
 #define MAX_DISPLAY_NAME_LEN 20
 #define MAX_MESSAGE_CONTENT_LEN 60000
 
+// The sum of all Reply_MSG struct members, it is the biggest struct possible to be sent
+#define MAX_PACKET_SIZE (MAX_MESSAGE_CONTENT_LEN + sizeof(uint8_t)*2 + sizeof(uint16_t)*2 + 1) // 1 null byte
+
 #endif
