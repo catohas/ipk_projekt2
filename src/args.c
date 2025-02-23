@@ -83,6 +83,7 @@ void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, c
 
         if (strcmp(argv[i], "-h") == 0) {
             cmd_help();
+            exit(EXIT_SUCCESS);
         }
     }
 }
