@@ -12,3 +12,9 @@
 
 - add deserialization and free functions to header file
 - validate input
+
+- idk:
+- keep a global of confirmed ids
+- on confirm message receive flag respective id
+
+make serialize and deserialize functions include msg type
