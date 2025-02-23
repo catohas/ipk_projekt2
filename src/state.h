@@ -12,7 +12,7 @@ enum APP_STATE
     STATE_NEG_REPLY,
 };
 
-typedef uint8_t *(*cmd_ptr)(void);
+typedef void (*cmd_ptr)(void);
 
 void state_auth_logic(cmd_ptr cmd);
 void state_join_logic(cmd_ptr cmd);
