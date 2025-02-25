@@ -3,6 +3,7 @@
 
 enum APP_STATE
 {
+    STATE_START,
     STATE_AUTH,
     STATE_JOIN,
     STATE_ERR,
@@ -14,6 +15,7 @@ enum APP_STATE
 
 typedef void (*cmd_ptr)(void);
 
+void state_start_logic(cmd_ptr cmd);
 void state_auth_logic(cmd_ptr cmd);
 void state_join_logic(cmd_ptr cmd);
 void state_err_logic(cmd_ptr cmd);
