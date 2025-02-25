@@ -23,6 +23,7 @@
 #include "./args.h"
 #include "./commands.h"
 #include "./debug.h"
+#include "./defaults.h"
 #include "./global.h"
 #include "./maximums.h"
 #include "./messages.h"
@@ -32,7 +33,7 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-enum APP_STATE state = STATE_AUTH;
+enum APP_STATE state = STATE_START;
 
 char *line = NULL;
 int sockfd = -1;
@@ -40,9 +41,12 @@ struct addrinfo hints, *servinfo, *p;
 
 int use_tcp_protocol = -1;
 char *hostname = NULL;
-char *port = "4567";
-uint16_t udp_timeout = 250;
-uint8_t udp_retransmissions = 3;
+char *port = DEFAULT_PORT;
+uint16_t udp_timeout = DEFAULT_UDP_TIMEOUT;
+uint8_t udp_retransmissions = DEFAULT_UDP_RETRANSMISSIONS;
+
+uint16_t *confirmed_msg_ids;
+size_t confirmed_msg_ids_index = 0;
 
 static void cleanup()
 {
@@ -84,13 +88,19 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
+    confirmed_msg_ids = malloc(sizeof(uint16_t)*DEFAULT_MSG_CONFIRM_ARR_SIZE);
+    if (confirmed_msg_ids == NULL) {
+        fprintf(stderr, "failed to allocate memory\n");
+        exit(EXIT_FAILURE);
+    }
+
     // uint8_t recv_buffer[MAX_PACKET_SIZE] = {0};
     // if (recvfrom(sockfd, recv_buffer, MAX_PACKET_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
     //     perror("recvfrom");
     //     continue;
     // }
 
-    while (1) {
+    while (true) {
         size_t len;
         getline(&line, &len, stdin);
 
@@ -98,25 +108,28 @@ int main(int argc, char *argv[])
 
         if (line[0] == '\0') continue; // when the user presses only enter
         
-        bool command_ran = false;
+        bool command_selected = false;
         char *token = strtok(line, " ");
         cmd_ptr cmd_ptr;
 
         for (size_t i = 0; i < ARRAY_SIZE(commands); i++) {
             if (strcmp(token, commands[i]) == 0) {
                 cmd_ptr = *command_functions[i];
-                command_ran = true;
+                command_selected = true;
                 break;
             }
         }
 
-        if (!command_ran) {
+        if (!command_selected) {
             cmd_ptr = cmd_msg;
         }
 
         switch (state) {
+            case STATE_START:
+                state_start_logic(cmd_ptr);
+                break;
             case STATE_AUTH:
-                state_auth_logic(cmd_ptr);
+                // state_auth_logic(cmd_ptr);
                 break;
             case STATE_JOIN:
                 // state_join_logic(cmd_ptr);
