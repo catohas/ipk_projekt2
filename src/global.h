@@ -26,4 +26,7 @@ extern char *port;
 extern uint16_t udp_timeout;
 extern uint8_t udp_retransmissions;
 
+extern uint16_t *confirmed_msg_ids;
+extern size_t confirmed_msg_ids_index;
+
 #endif
