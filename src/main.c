@@ -61,7 +61,11 @@ static void cleanup()
 
 int main(int argc, char *argv[])
 {
-    signal(SIGINT, exit);
+    // Run exit function on ctrl + c
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = exit;
+    sigaction(SIGINT, &sa, NULL);
 
     int reg_status = atexit(cleanup);
     if (reg_status != 0) {
