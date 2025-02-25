@@ -135,23 +135,14 @@ int main(int argc, char *argv[])
             case STATE_AUTH:
                 // state_auth_logic(cmd_ptr);
                 break;
+            case STATE_OPEN:
+                // state_open_logic(cmd_ptr);
+                break;
             case STATE_JOIN:
                 // state_join_logic(cmd_ptr);
                 break;
-            case STATE_ERR:
-                // state_err_logic(cmd_ptr);
-                break;
-            case STATE_BYE:
-                // state_bye_logic(cmd_ptr);
-                break;
-            case STATE_MSG:
-                // state_msg_logic(cmd_ptr);
-                break;
-            case STATE_REPLY:
-                // state_reply_logic(cmd_ptr);
-                break;
-            case STATE_NEG_REPLY:
-                // state_neg_reply_logic(cmd_ptr);
+            case STATE_END:
+                // state_end_logic(cmd_ptr);
                 break;
             default:
                 fprintf(stderr, "invalid app state\n");
