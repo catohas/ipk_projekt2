@@ -79,12 +79,14 @@ uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
             }
             memcpy(return_recv_buffer, recv_buffer, MAX_PACKET_SIZE);
 
+            close(sockfd);
             free(in_buffer);
 
             return return_recv_buffer;
         }
     }
 
+    close(sockfd);
     free(in_buffer);
     return NULL;
 }
