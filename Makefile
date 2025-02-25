@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS = -pedantic -Wall -Wextra -O2 -std=c11
-DCFLAGS = -g -pedantic -Wall -Wextra -O2 -std=c11 -DDEBUG_PRINT -fanalyzer
+DCFLAGS = -g -pedantic -Wall -Wextra -O2 -std=c11 -DDEBUG_PRINT
+
 TARGET = main
 
 SRCDIR = src
