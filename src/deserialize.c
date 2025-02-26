@@ -6,7 +6,7 @@
 #include "./debug.h"
 
 struct Confirm_MSG *deserialize_confirm_msg(const uint8_t *buffer, size_t buffer_size) {
-    // Validate buffer size
+    
     if (buffer_size < (sizeof(uint8_t) + sizeof(uint16_t))) {
         printf_debug_simple(COLOR_ERR, "buffer is smaller than needed");
         return NULL;
@@ -31,10 +31,10 @@ struct Confirm_MSG *deserialize_confirm_msg(const uint8_t *buffer, size_t buffer
 }
 
 struct Reply_MSG *deserialize_reply_msg(const uint8_t *buffer, size_t buffer_size) {
-    // Minimum size check (excluding variable-length message_contents)
     const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 
                            sizeof(uint8_t) + sizeof(uint16_t) + 1; // +1 for null terminator
     if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "buffer is smaller than needed");
         return NULL;
     }
 
