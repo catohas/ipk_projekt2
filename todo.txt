@@ -13,7 +13,6 @@
 - add deserialization and free functions to header file
 - validate input
 
-- idk:
 - keep a global of confirmed ids
 - on confirm message receive flag respective id
 
@@ -22,3 +21,5 @@ make serialize and deserialize functions include msg type
 rename should work at all times
 make message counter just a size_t
 use a message queue
+rewrite maximums to use sizeof(uint8_t)*amount
+use strlen and memcpy for deserialization
