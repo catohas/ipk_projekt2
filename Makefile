@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -pedantic -Wall -Wextra -O2 -std=c11
-DCFLAGS = -g -pedantic -Wall -Wextra -O2 -std=c11 -DDEBUG_PRINT
+CFLAGS = -pedantic -Wall -Wextra -O2 -std=c17
+DCFLAGS = -g -pedantic -Wall -Wextra -O2 -std=c17 -DDEBUG_PRINT
 
 TARGET = main
 
