@@ -59,7 +59,7 @@ static void cleanup()
     // exit(EXIT_SUCCESS);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
     // Run exit function on ctrl + c
     struct sigaction sa;
