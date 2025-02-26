@@ -65,19 +65,19 @@ uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
         else {
             printf_debug(COLOR_INFO, "sent %d bytes to %s", numbytes, hostname);
 
-            uint8_t recv_buffer[MAX_PACKET_SIZE] = {0};
-            if (recvfrom(sockfd, recv_buffer, MAX_PACKET_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
+            uint8_t recv_buffer[MAX_MSG_SIZE] = {0};
+            if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
                 perror("recvfrom");
                 continue;
             }
 
-            uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_PACKET_SIZE);
+            uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_MSG_SIZE);
             if (return_recv_buffer == NULL) {
                 perror("failed to allocate return buffer");
                 free(in_buffer);
                 exit(EXIT_FAILURE);
             }
-            memcpy(return_recv_buffer, recv_buffer, MAX_PACKET_SIZE);
+            memcpy(return_recv_buffer, recv_buffer, MAX_MSG_SIZE);
 
             close(sockfd);
             free(in_buffer);

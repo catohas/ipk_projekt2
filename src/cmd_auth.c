@@ -51,7 +51,7 @@ void cmd_auth(void)
     // size_t buffer_size;
     // uint8_t *in_buffer = serialize_confirm_msg(&confirm_msg, &buffer_size);
 
-    size_t out_buffer_size = sizeof(uint8_t)*MAX_PACKET_SIZE;
+    size_t out_buffer_size = sizeof(uint8_t)*MAX_MSG_SIZE;
     uint8_t *out_buffer = malloc(out_buffer_size);
 
     if (out_buffer == NULL) {

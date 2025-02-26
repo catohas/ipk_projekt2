@@ -98,8 +98,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    // uint8_t recv_buffer[MAX_PACKET_SIZE] = {0};
-    // if (recvfrom(sockfd, recv_buffer, MAX_PACKET_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
+    // uint8_t recv_buffer[] = {0};
+    // if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
     //     perror("recvfrom");
     //     continue;
     // }
