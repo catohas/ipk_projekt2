@@ -4,11 +4,12 @@
 
 #include "./deserialize.h"
 #include "./debug.h"
+#include "./maximums.h"
 
 struct Confirm_MSG *deserialize_confirm_msg(const uint8_t *buffer, size_t buffer_size) {
     
     if (buffer_size < (sizeof(uint8_t) + sizeof(uint16_t))) {
-        printf_debug_simple(COLOR_ERR, "buffer is smaller than needed");
+        printf_debug_simple(COLOR_ERR, "confirm msg buffer is smaller than needed");
         return NULL;
     }
 
@@ -31,10 +32,11 @@ struct Confirm_MSG *deserialize_confirm_msg(const uint8_t *buffer, size_t buffer
 }
 
 struct Reply_MSG *deserialize_reply_msg(const uint8_t *buffer, size_t buffer_size) {
+
     const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 
-                           sizeof(uint8_t) + sizeof(uint16_t) + 1; // +1 for null terminator
+                           sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint8_t)*MAX_MESSAGE_CONTENT_LEN + 1; // +1 for null terminator
     if (buffer_size < min_size) {
-        printf_debug_simple(COLOR_ERR, "buffer is smaller than needed");
+        printf_debug_simple(COLOR_ERR, "reply msg buffer is smaller than needed");
         return NULL;
     }
 
@@ -66,35 +68,39 @@ struct Reply_MSG *deserialize_reply_msg(const uint8_t *buffer, size_t buffer_siz
     reply_msg->ref_message_id = ntohs(net_ref_message_id);
     offset += sizeof(net_ref_message_id);
 
-    // Calculate remaining buffer size for message_contents
-    size_t remaining_size = buffer_size - offset;
-    
-    // Allocate and copy message_contents
-    char *message_contents = malloc(remaining_size);
-    if (message_contents == NULL) {
-        free(reply_msg);
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-    
-    memcpy(message_contents, buffer + offset, remaining_size);
-    reply_msg->message_contents = message_contents;
-
-    // Verify null termination
-    if (message_contents[remaining_size - 1] != '\0') {
-        printf_debug_simple(COLOR_ERR, "deserialized reply msg did not have null terminator at the end");
-        free(message_contents);
-        free(reply_msg);
-        return NULL;
-    }
+    // USE STRLEN AND MEMCPY HELLO??! what am i doing
+    // Read message contents byte by byte up until null terminator
+    // char next_char = buffer[offset];
+    // char *message_contents = NULL;
+    // size_t index = 0;
+    // while (next_char != '\0') {
+    //     char *temp = realloc(message_contents, sizeof(char)*(index+1));
+    //     if (temp == NULL) {
+    //         printf_debug_simple(COLOR_ERR, "failed to reallocate memory");
+    //         free(buffer);
+    //         free(reply_msg);
+    //         free(message_contents);
+    //         free(temp);
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     message_contents = temp;
+    //     message_contents[index] = next_char;
+    //     offset++;
+    //     next_char = buffer[offset];
+    //     index++;
+    // }
+    // reply_msg->message_contents = message_contents;
 
     return reply_msg;
 }
 
 struct Auth_MSG *deserialize_auth_msg(const uint8_t *buffer, size_t buffer_size) {
     // Minimum size check (type + message_id + at least 3 null terminators)
-    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 3;
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint8_t)*MAX_USERNAME_LEN +
+        sizeof(uint8_t)*MAX_DISPLAY_NAME_LEN + sizeof(uint8_t)*MAX_SECRET_LEN + 3;
+
     if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "auth msg buffer is smaller than needed");
         return NULL;
     }
 
