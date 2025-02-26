@@ -18,3 +18,7 @@
 - on confirm message receive flag respective id
 
 make serialize and deserialize functions include msg type
+
+rename should work at all times
+make message counter just a size_t
+use a message queue
