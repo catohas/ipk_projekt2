@@ -7,7 +7,7 @@
 
 void parse_args(int argc, char **argv, int *use_tcp_protocol, char **hostname, char **port, uint16_t *udp_timeout, uint8_t *udp_retransmissions)
 {
-    for (int i = 0; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         
         if (strcmp(argv[i], "-t") == 0) {
             i++;
