@@ -59,7 +59,7 @@ void cmd_auth(void)
         exit(EXIT_FAILURE);
     }
 
-    uint8_t *recv_buffer = send_network_msg_udp(in_buffer, buffer_size);
+    send_network_msg_udp(in_buffer, buffer_size);
 
     // struct Auth_MSG *a_msg = deserialize_auth_msg(recv_buffer, buffer_size);
 
