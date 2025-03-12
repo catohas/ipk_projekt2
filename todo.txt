@@ -23,3 +23,5 @@ make message counter just a size_t
 use a message queue
 rewrite maximums to use sizeof(uint8_t)*amount
 use strlen and memcpy for deserialization
+
+free members on deserialization malloc fail using struct free functions
