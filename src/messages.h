@@ -8,6 +8,11 @@
 
 #include <stdint.h>
 
+// For testing using googletest
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct Auth_MSG;
 struct Confirm_MSG;
 struct Reply_MSG;
@@ -25,6 +30,15 @@ void create_msg(struct MSG *msg, uint16_t message_id, char *display_name, char *
 void create_err_msg(struct Err_MSG *err_msg, uint16_t message_id, char *display_name, char *message_contents);
 void create_bye_msg(struct Bye_MSG *bye_msg, uint16_t message_id, char *display_name);
 void create_ping_msg(struct Ping_MSG *ping_msg, uint16_t message_id);
+
+void free_confirm_msg(struct Confirm_MSG *msg);
+void free_reply_msg(struct Reply_MSG *msg);
+void free_auth_msg(struct Auth_MSG *msg);
+void free_join_msg(struct Join_MSG *msg);
+void free_msg(struct MSG *msg);
+void free_err_msg(struct Err_MSG *msg);
+void free_bye_msg(struct Bye_MSG *msg);
+void free_ping_msg(struct Ping_MSG *msg);
 
 enum MSG_TYPE
 {
@@ -113,5 +127,9 @@ struct Bye_MSG
 };
 
 #pragma pack()
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

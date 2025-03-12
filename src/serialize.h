@@ -11,6 +11,11 @@
 
 #include "./messages.h"
 
+// For testing using googletest
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint8_t *serialize_confirm_msg(struct Confirm_MSG *confirm_msg, size_t *out_size);
 uint8_t *serialize_reply_msg(struct Reply_MSG *reply_msg, size_t *out_size);
 uint8_t *serialize_auth_msg(struct Auth_MSG *auth_msg, size_t *out_size);
@@ -19,5 +24,9 @@ uint8_t *serialize_msg(struct MSG *msg, size_t *out_size);
 uint8_t *serialize_err_msg(struct Err_MSG *err_msg, size_t *out_size);
 uint8_t *serialize_bye_msg(struct Bye_MSG *bye_msg, size_t *out_size);
 uint8_t *serialize_ping_msg(struct Ping_MSG *ping_msg, size_t *out_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
