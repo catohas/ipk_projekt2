@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "./debug.h"
 #include "./global.h"
@@ -12,7 +13,7 @@
 #include "./network.h"
 #include "./serialize.h"
 
-uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
+void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
 {
     int rv;
     int numbytes;
@@ -43,10 +44,9 @@ uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
     }
 
     printf_debug(COLOR_INFO, "size of struct before sending: %zu bytes", in_buffer_size);
-
     struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = udp_timeout*1000; // msec to usec
+    timeout.tv_sec = floor(udp_timeout/1000);
+    timeout.tv_usec = (udp_timeout % 1000)*1000; // msec to usec
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         perror("setsockopt failed");
         free(in_buffer);
@@ -65,28 +65,28 @@ uint8_t *send_network_msg_udp(uint8_t *in_buffer, size_t in_buffer_size)
         else {
             printf_debug(COLOR_INFO, "sent %d bytes to %s", numbytes, hostname);
 
-            uint8_t recv_buffer[MAX_MSG_SIZE] = {0};
-            if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
-                perror("recvfrom");
-                continue;
-            }
+            // uint8_t recv_buffer[MAX_MSG_SIZE] = {0};
+            // if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
+            //     perror("recvfrom");
+            //     continue;
+            // }
 
-            uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_MSG_SIZE);
-            if (return_recv_buffer == NULL) {
-                perror("failed to allocate return buffer");
-                free(in_buffer);
-                exit(EXIT_FAILURE);
-            }
-            memcpy(return_recv_buffer, recv_buffer, MAX_MSG_SIZE);
+            // uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_MSG_SIZE);
+            // if (return_recv_buffer == NULL) {
+            //     perror("failed to allocate return buffer");
+            //     free(in_buffer);
+            //     exit(EXIT_FAILURE);
+            // }
+            // memcpy(return_recv_buffer, recv_buffer, MAX_MSG_SIZE);
 
-            close(sockfd);
-            free(in_buffer);
+            // close(sockfd);
+            // free(in_buffer);
 
-            return return_recv_buffer;
+            // return return_recv_buffer;
         }
     }
 
     close(sockfd);
     free(in_buffer);
-    return NULL;
+    // return NULL;
 }
