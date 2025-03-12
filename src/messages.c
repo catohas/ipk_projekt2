@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "./messages.h"
 
 void create_confirm_msg(struct Confirm_MSG *confirm_msg, uint16_t ref_message_id)
@@ -59,4 +61,59 @@ void create_ping_msg(struct Ping_MSG *ping_msg, uint16_t message_id)
 {
     ping_msg->type = MSG_TYPE_VAL[PING];
     ping_msg->message_id = message_id;
+}
+
+void free_confirm_msg(struct Confirm_MSG *msg) {
+    free(msg);
+}
+
+void free_reply_msg(struct Reply_MSG *msg) {
+    if (msg) {
+        if (msg->message_contents) free(msg->message_contents);
+        free(msg);
+    }
+}
+
+void free_auth_msg(struct Auth_MSG *msg) {
+    if (msg) {
+        if (msg->username) free(msg->username);
+        if (msg->display_name) free(msg->display_name);
+        if (msg->secret) free(msg->secret);
+        free(msg);
+    }
+}
+
+void free_join_msg(struct Join_MSG *msg) {
+    if (msg) {
+        if (msg->channel_id) free(msg->channel_id);
+        if (msg->display_name) free(msg->display_name);
+        free(msg);
+    }
+}
+
+void free_msg(struct MSG *msg) {
+    if (msg) {
+        if (msg->display_name) free(msg->display_name);
+        if (msg->message_contents) free(msg->message_contents);
+        free(msg);
+    }
+}
+
+void free_err_msg(struct Err_MSG *msg) {
+    if (msg) {
+        if (msg->display_name) free(msg->display_name);
+        if (msg->message_contents) free(msg->message_contents);
+        free(msg);
+    }
+}
+
+void free_bye_msg(struct Bye_MSG *msg) {
+    if (msg) {
+        if (msg->display_name) free(msg->display_name);
+        free(msg);
+    }
+}
+
+void free_ping_msg(struct Ping_MSG *msg) {
+    free(msg);
 }
