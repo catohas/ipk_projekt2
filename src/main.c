@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -31,6 +32,20 @@
 #include "./serialize.h"
 #include "./deserialize.h"
 
+const char *commands[] = {
+    "/auth",
+    "/join",
+    "/rename",
+    "/help"
+};
+
+void (*command_functions[])(void) = {
+    cmd_auth,
+    cmd_join,
+    cmd_rename,
+    cmd_help
+};
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 enum APP_STATE state = STATE_START;
@@ -46,12 +61,67 @@ uint16_t udp_timeout = DEFAULT_UDP_TIMEOUT;
 uint8_t udp_retransmissions = DEFAULT_UDP_RETRANSMISSIONS;
 
 uint16_t *confirmed_msg_ids;
-size_t confirmed_msg_ids_index = 0;
+size_t confirmed_msg_ids_amount = 0;
+
+pthread_t listener_thread;
+bool listener_thread_running = false;
+
+// add a message ID to the confirmed messages array
+void add_confirmed_msg_id(uint16_t msg_id) {
+    if (confirmed_msg_ids_amount >= DEFAULT_MSG_CONFIRM_ARR_SIZE) {
+        // resize array or handle overflow
+        uint16_t *new_array = realloc(confirmed_msg_ids, sizeof(uint16_t) * (DEFAULT_MSG_CONFIRM_ARR_SIZE * 2));
+        if (new_array == NULL) {
+            fprintf(stderr, "Failed to resize confirmed message IDs array\n");
+            return;
+        }
+        confirmed_msg_ids = new_array;
+    }
+    
+    confirmed_msg_ids[confirmed_msg_ids_amount++] = msg_id;
+}
+
+void process_received_message(char *buffer, int length) {
+    // message processing here
+}
+
+void *udp_listener(void *arg) {
+    char recv_buffer[MAX_MSG_SIZE];
+    socklen_t addr_len = sizeof(struct sockaddr_storage);
+    struct sockaddr_storage their_addr;
+    
+    while (true) {
+        int numbytes = recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
+        if (numbytes == -1) {
+            perror("recvfrom");
+            continue;
+        }
+        
+        recv_buffer[numbytes] = '\0';
+        
+        // deserialization here
+        printf("Received: %s\n", recv_buffer);
+        
+        // handle message confirmation here
+        process_received_message(recv_buffer, numbytes);
+    }
+    
+    return NULL;
+}
 
 static void cleanup()
 {
     printf_debug_simple(COLOR_INFO, "cleaning up...");
+
     // free(line);
+
+    if (listener_thread_running) {
+        pthread_cancel(listener_thread);
+        pthread_join(listener_thread, NULL);
+        listener_thread_running = false;
+    }
+
+    free(confirmed_msg_ids);
     freeaddrinfo(servinfo);
     if (sockfd != -1) {
         close(sockfd);
@@ -96,6 +166,43 @@ int main(int argc, char **argv)
     if (confirmed_msg_ids == NULL) {
         fprintf(stderr, "failed to allocate memory\n");
         exit(EXIT_FAILURE);
+    }
+
+    pthread_t listener_thread;
+    if (use_tcp_protocol == 0) {  // if using UDP
+        
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_DGRAM;
+        
+        int rv = getaddrinfo(hostname, port, &hints, &servinfo);
+        if (rv != 0) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+            return EXIT_FAILURE;
+        }
+        
+        for (p = servinfo; p != NULL; p = p->ai_next) {
+            sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            if (sockfd == -1) {
+                perror("socket");
+                continue;
+            }
+            break;
+        }
+        
+        if (p == NULL) {
+            fprintf(stderr, "Failed to create socket\n");
+            return EXIT_FAILURE;
+        }
+        
+        if (pthread_create(&listener_thread, NULL, udp_listener, NULL) != 0) {
+            perror("pthread_create");
+            return EXIT_FAILURE;
+        }
+        listener_thread_running = true;
+        
+        // detach thread so it cleans up itself when done
+        pthread_detach(listener_thread);
     }
 
     // uint8_t recv_buffer[] = {0};
