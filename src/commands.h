@@ -18,18 +18,4 @@ void cmd_join(void);
 void cmd_rename(void);
 void cmd_help(void);
 
-static const char *commands[] = {
-    "/auth",
-    "/join",
-    "/rename",
-    "/help"
-};
-
-static void (*command_functions[])(void) = {
-    cmd_auth,
-    cmd_join,
-    cmd_rename,
-    cmd_help
-};
-
 #endif
