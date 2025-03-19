@@ -85,16 +85,18 @@ void process_received_message(char *buffer, int length) {
     // message processing here
 }
 
-void *udp_listener(void *arg) {
+void udp_listener(void *arg) {
+
     char recv_buffer[MAX_MSG_SIZE];
     socklen_t addr_len = sizeof(struct sockaddr_storage);
     struct sockaddr_storage their_addr;
     
-    while (true) {
+    // while (true) {
+        printf_debug_simple(COLOR_INFO, "starting udp listener...");
         int numbytes = recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
         if (numbytes == -1) {
             perror("recvfrom");
-            continue;
+            // continue;
         }
         
         recv_buffer[numbytes] = '\0';
@@ -104,9 +106,7 @@ void *udp_listener(void *arg) {
         
         // handle message confirmation here
         process_received_message(recv_buffer, numbytes);
-    }
-    
-    return NULL;
+    // }
 }
 
 static void cleanup()
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
     if (use_tcp_protocol == 0) {  // if using UDP
         
         memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_UNSPEC;
+        hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
         
         int rv = getaddrinfo(hostname, port, &hints, &servinfo);
@@ -187,6 +187,12 @@ int main(int argc, char **argv)
                 perror("socket");
                 continue;
             }
+
+            if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+                close(sockfd);
+                perror("bind");
+                continue;
+            }
             break;
         }
         
@@ -194,6 +200,8 @@ int main(int argc, char **argv)
             fprintf(stderr, "Failed to create socket\n");
             return EXIT_FAILURE;
         }
+
+        // freeaddrinfo();
         
         if (pthread_create(&listener_thread, NULL, udp_listener, NULL) != 0) {
             perror("pthread_create");
