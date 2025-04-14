@@ -26,6 +26,7 @@
 #include "./debug.h"
 #include "./defaults.h"
 #include "./global.h"
+#include "./network.h"
 #include "./maximums.h"
 #include "./messages.h"
 #include "./state.h"
@@ -67,13 +68,14 @@ pthread_t listener_thread;
 bool listener_thread_running = false;
 
 // add a message ID to the confirmed messages array
-void add_confirmed_msg_id(uint16_t msg_id) {
+void add_confirmed_msg_id(uint16_t msg_id)
+{
     if (confirmed_msg_ids_amount >= DEFAULT_MSG_CONFIRM_ARR_SIZE) {
         // resize array or handle overflow
         uint16_t *new_array = realloc(confirmed_msg_ids, sizeof(uint16_t) * (DEFAULT_MSG_CONFIRM_ARR_SIZE * 2));
         if (new_array == NULL) {
             fprintf(stderr, "Failed to resize confirmed message IDs array\n");
-            return;
+            exit(EXIT_FAILURE);
         }
         confirmed_msg_ids = new_array;
     }
@@ -81,23 +83,59 @@ void add_confirmed_msg_id(uint16_t msg_id) {
     confirmed_msg_ids[confirmed_msg_ids_amount++] = msg_id;
 }
 
-void process_received_message(char *buffer, int length) {
-    // message processing here
-}
+void *udp_listener(void *arg)
+{
+    (void)arg;
 
-void udp_listener(void *arg) {
+    int sockfd = -1;
+    struct addrinfo hints, *servinfo, *p;
 
-    char recv_buffer[MAX_MSG_SIZE];
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    // hints.ai_flags = AI_PASSIVE;
+    
+    int rv = getaddrinfo(hostname, port, &hints, &servinfo);
+    if (rv != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        exit(EXIT_FAILURE);
+    }
+
+    for (p = servinfo; p != NULL; p = p->ai_next) {
+        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (sockfd == -1) {
+            perror("socket");
+            continue;
+        }
+
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("bind");
+            continue;
+        }
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "Failed to create socket\n");
+        exit(EXIT_FAILURE);
+    }
+
+    freeaddrinfo(servinfo);
+
+    unsigned char recv_buffer[MAX_MSG_SIZE];
     socklen_t addr_len = sizeof(struct sockaddr_storage);
     struct sockaddr_storage their_addr;
     
-    // while (true) {
+    while (true) {
         printf_debug_simple(COLOR_INFO, "starting udp listener...");
         int numbytes = recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
         if (numbytes == -1) {
             perror("recvfrom");
-            // continue;
+            return NULL;
         }
+
+        printf_debug(COLOR_INFO, "received %d bytes\n", numbytes);
         
         recv_buffer[numbytes] = '\0';
         
@@ -105,8 +143,10 @@ void udp_listener(void *arg) {
         printf("Received: %s\n", recv_buffer);
         
         // handle message confirmation here
-        process_received_message(recv_buffer, numbytes);
-    // }
+        process_received_udp_message(recv_buffer, numbytes);
+    }
+
+    return NULL;
 }
 
 static void cleanup()
@@ -115,11 +155,11 @@ static void cleanup()
 
     // free(line);
 
-    if (listener_thread_running) {
-        pthread_cancel(listener_thread);
-        pthread_join(listener_thread, NULL);
-        listener_thread_running = false;
-    }
+    // if (listener_thread_running) {
+    //     pthread_cancel(listener_thread);
+    //     pthread_join(listener_thread, NULL);
+    //     listener_thread_running = false;
+    // }
 
     free(confirmed_msg_ids);
     freeaddrinfo(servinfo);
@@ -171,35 +211,35 @@ int main(int argc, char **argv)
     pthread_t listener_thread;
     if (use_tcp_protocol == 0) {  // if using UDP
         
-        memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_DGRAM;
+        // memset(&hints, 0, sizeof hints);
+        // hints.ai_family = AF_INET;
+        // hints.ai_socktype = SOCK_DGRAM;
         
-        int rv = getaddrinfo(hostname, port, &hints, &servinfo);
-        if (rv != 0) {
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-            return EXIT_FAILURE;
-        }
+        // int rv = getaddrinfo(hostname, port, &hints, &servinfo);
+        // if (rv != 0) {
+        //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        //     return EXIT_FAILURE;
+        // }
         
-        for (p = servinfo; p != NULL; p = p->ai_next) {
-            sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-            if (sockfd == -1) {
-                perror("socket");
-                continue;
-            }
+        // for (p = servinfo; p != NULL; p = p->ai_next) {
+        //     sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        //     if (sockfd == -1) {
+        //         perror("socket");
+        //         continue;
+        //     }
 
-            if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-                close(sockfd);
-                perror("bind");
-                continue;
-            }
-            break;
-        }
+        //     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+        //         close(sockfd);
+        //         perror("bind");
+        //         continue;
+        //     }
+        //     break;
+        // }
         
-        if (p == NULL) {
-            fprintf(stderr, "Failed to create socket\n");
-            return EXIT_FAILURE;
-        }
+        // if (p == NULL) {
+        //     fprintf(stderr, "Failed to create socket\n");
+        //     return EXIT_FAILURE;
+        // }
 
         // freeaddrinfo();
         
