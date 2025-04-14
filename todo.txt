@@ -25,3 +25,4 @@ rewrite maximums to use sizeof(uint8_t)*amount
 use strlen and memcpy for deserialization
 
 free members on deserialization malloc fail using struct free functions
+when an unknown message is received handle correctly
