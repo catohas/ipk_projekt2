@@ -5,5 +5,6 @@
 #define DEFAULT_UDP_TIMEOUT 250
 #define DEFAULT_UDP_RETRANSMISSIONS 3
 #define DEFAULT_PORT "4567"
+#define DEFAULT_USERNAME "unknown"
 
 #endif
