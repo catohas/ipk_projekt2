@@ -26,3 +26,5 @@ use strlen and memcpy for deserialization
 
 free members on deserialization malloc fail using struct free functions
 when an unknown message is received handle correctly
+on receive hostname check should be for both hostanme and ip
+cmd_auth should set username
