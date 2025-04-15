@@ -17,7 +17,8 @@
 extern enum APP_STATE state;
 
 extern char *line;
-extern int sockfd;
+extern int udp_listen_socket;
+extern int udp_send_socket;
 extern struct addrinfo hints, *servinfo, *p;
 
 extern int use_tcp_protocol;

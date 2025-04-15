@@ -32,6 +32,7 @@
 #include "./state.h"
 #include "./serialize.h"
 #include "./deserialize.h"
+#include "./id.h"
 
 const char *commands[] = {
     "/auth",
@@ -52,14 +53,19 @@ void (*command_functions[])(void) = {
 enum APP_STATE state = STATE_START;
 
 char *line = NULL;
-int sockfd = -1;
+
+int udp_listen_socket = -1;
+int udp_send_socket = -1;
 struct addrinfo hints, *servinfo, *p;
 
 int use_tcp_protocol = -1;
 char *hostname = NULL;
 char *port = DEFAULT_PORT;
+
 uint16_t udp_timeout = DEFAULT_UDP_TIMEOUT;
 uint8_t udp_retransmissions = DEFAULT_UDP_RETRANSMISSIONS;
+
+char *username = DEFAULT_USERNAME;
 
 uint16_t *confirmed_msg_ids;
 size_t confirmed_msg_ids_amount = 0;
@@ -71,7 +77,7 @@ bool listener_thread_running = false;
 void add_confirmed_msg_id(uint16_t msg_id)
 {
     if (confirmed_msg_ids_amount >= DEFAULT_MSG_CONFIRM_ARR_SIZE) {
-        // resize array or handle overflow
+        // resize array to handle overflow
         uint16_t *new_array = realloc(confirmed_msg_ids, sizeof(uint16_t) * (DEFAULT_MSG_CONFIRM_ARR_SIZE * 2));
         if (new_array == NULL) {
             fprintf(stderr, "Failed to resize confirmed message IDs array\n");
@@ -80,70 +86,136 @@ void add_confirmed_msg_id(uint16_t msg_id)
         confirmed_msg_ids = new_array;
     }
     
-    confirmed_msg_ids[confirmed_msg_ids_amount++] = msg_id;
+    confirmed_msg_ids[confirmed_msg_ids_amount] = msg_id;
 }
 
 void *udp_listener(void *arg)
 {
     (void)arg;
 
-    int sockfd = -1;
-    struct addrinfo hints, *servinfo, *p;
+    printf_debug_simple(COLOR_INFO, "starting udp listener...");
+
+    struct addrinfo hints;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-    // hints.ai_flags = AI_PASSIVE;
+
+    udp_listen_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_listen_socket == -1) {
+        perror("listener socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in my_addr;
+    memset(&my_addr, 0, sizeof(my_addr));
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(45789);  // port for receiving
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(udp_listen_socket, (struct sockaddr *)&my_addr, sizeof(my_addr)) == -1) {
+        perror("bind");
+        close(udp_listen_socket);
+        return NULL;
+    }
     
-    int rv = getaddrinfo(hostname, port, &hints, &servinfo);
-    if (rv != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        exit(EXIT_FAILURE);
-    }
+    // int rv = getaddrinfo(hostname, port, &hints, &servinfo);
+    // if (rv != 0) {
+    //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    //     exit(EXIT_FAILURE);
+    // }
 
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (sockfd == -1) {
-            perror("socket");
-            continue;
-        }
+    // for (p = servinfo; p != NULL; p = p->ai_next) {
+    //     sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    //     if (sockfd == -1) {
+    //         perror("socket");
+    //         continue;
+    //     }
 
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("bind");
-            continue;
-        }
-        break;
-    }
+    //     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+    //         close(sockfd);
+    //         perror("bind");
+    //         continue;
+    //     }
+    //     break;
+    // }
 
-    if (p == NULL) {
-        fprintf(stderr, "Failed to create socket\n");
-        exit(EXIT_FAILURE);
-    }
+    // if (p == NULL) {
+    //     fprintf(stderr, "Failed to create socket\n");
+    //     exit(EXIT_FAILURE);
+    // }
 
-    freeaddrinfo(servinfo);
+    // freeaddrinfo(servinfo);
 
     unsigned char recv_buffer[MAX_MSG_SIZE];
     socklen_t addr_len = sizeof(struct sockaddr_storage);
     struct sockaddr_storage their_addr;
+
+    int server_dynamic_port = -1;
+    bool has_changed_to_dyn_port = false;
+    int sender_port = 0;
     
     while (true) {
-        printf_debug_simple(COLOR_INFO, "starting udp listener...");
-        int numbytes = recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
+
+        printf_debug_simple(COLOR_INFO, "in listening loop...");
+
+        int numbytes = recvfrom(udp_listen_socket, recv_buffer, MAX_MSG_SIZE - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
         if (numbytes == -1) {
             perror("recvfrom");
-            return NULL;
+            continue;
         }
 
-        printf_debug(COLOR_INFO, "received %d bytes\n", numbytes);
+        // only process packets from the server
+        char addr[INET_ADDRSTRLEN];
+        // inet_ntop(AF_INET, &((struct sockaddr_in *)&their_addr)->sin_addr, addr, sizeof(addr));
         
-        recv_buffer[numbytes] = '\0';
+        // extract IP address and port from the sender
+        if (their_addr.ss_family == AF_INET) {
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
+            inet_ntop(AF_INET, &ipv4->sin_addr, addr, sizeof(addr));
+            sender_port = ntohs(ipv4->sin_port);
+        }
+
+        printf_debug(COLOR_INFO, "received %d bytes from %s:%d", numbytes, addr, sender_port);
         
-        // deserialization here
-        printf("Received: %s\n", recv_buffer);
-        
-        // handle message confirmation here
-        process_received_udp_message(recv_buffer, numbytes);
+        // check if the packet is from our server
+        if (strcmp(addr, hostname) == 0) {
+            
+            // change over to dynamic port
+            if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
+                if (sender_port != 0 && sender_port != atoi(port)) {
+                    server_dynamic_port = sender_port;
+
+                    printf_debug(COLOR_INFO, "updating to server's dynamic port: %s", port);
+
+                    port = malloc(6); // "65535" + null byte
+                    if (port == NULL) {
+                        fprintf(stderr, "failed to allocate memory\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    snprintf(port, 6, "%d", server_dynamic_port);
+                    has_changed_to_dyn_port = true;
+                }
+            }
+
+            for (int i = 0; i < numbytes; i++) {
+                printf("%02x", recv_buffer[i]);
+            }
+            printf("\n");
+            for (int i = 0; i < numbytes; i++) {
+                printf("%c", recv_buffer[i]);
+            }
+            printf("\n");
+
+            recv_buffer[numbytes] = '\0';
+
+            process_received_udp_message(recv_buffer, numbytes);
+
+        }
+        else {
+            printf_debug(COLOR_INFO, "ignoring packet from unknown source: %s", addr);
+        }
+
     }
 
     return NULL;
@@ -163,15 +235,25 @@ static void cleanup()
 
     free(confirmed_msg_ids);
     freeaddrinfo(servinfo);
-    if (sockfd != -1) {
-        close(sockfd);
+
+    // if (sockfd != -1) {
+    //     close(sockfd);
+    // }
+
+    if (udp_listen_socket != -1) {
+        close(udp_listen_socket);
     }
+
+    if (udp_send_socket != -1) {
+        close(udp_send_socket);
+    }
+
     // exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char **argv)
 {
-    // Run exit function on ctrl + c
+    // run exit function on ctrl + c
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = exit;
@@ -209,39 +291,7 @@ int main(int argc, char **argv)
     }
 
     pthread_t listener_thread;
-    if (use_tcp_protocol == 0) {  // if using UDP
-        
-        // memset(&hints, 0, sizeof hints);
-        // hints.ai_family = AF_INET;
-        // hints.ai_socktype = SOCK_DGRAM;
-        
-        // int rv = getaddrinfo(hostname, port, &hints, &servinfo);
-        // if (rv != 0) {
-        //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        //     return EXIT_FAILURE;
-        // }
-        
-        // for (p = servinfo; p != NULL; p = p->ai_next) {
-        //     sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        //     if (sockfd == -1) {
-        //         perror("socket");
-        //         continue;
-        //     }
-
-        //     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-        //         close(sockfd);
-        //         perror("bind");
-        //         continue;
-        //     }
-        //     break;
-        // }
-        
-        // if (p == NULL) {
-        //     fprintf(stderr, "Failed to create socket\n");
-        //     return EXIT_FAILURE;
-        // }
-
-        // freeaddrinfo();
+    if (use_tcp_protocol == 0) { // UDP protocol
         
         if (pthread_create(&listener_thread, NULL, udp_listener, NULL) != 0) {
             perror("pthread_create");
@@ -249,15 +299,8 @@ int main(int argc, char **argv)
         }
         listener_thread_running = true;
         
-        // detach thread so it cleans up itself when done
         pthread_detach(listener_thread);
     }
-
-    // uint8_t recv_buffer[] = {0};
-    // if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
-    //     perror("recvfrom");
-    //     continue;
-    // }
 
     while (true) {
         size_t len;
@@ -285,18 +328,23 @@ int main(int argc, char **argv)
 
         switch (state) {
             case STATE_START:
+                printf_debug_simple(COLOR_INFO, "executing start state routine");
                 state_start_logic(cmd_ptr);
                 break;
             case STATE_AUTH:
-                // state_auth_logic(cmd_ptr);
+                printf_debug_simple(COLOR_INFO, "executing auth state routine");
+                state_auth_logic(cmd_ptr);
                 break;
             case STATE_OPEN:
+                printf_debug_simple(COLOR_INFO, "executing open state routine");
                 // state_open_logic(cmd_ptr);
                 break;
             case STATE_JOIN:
+                printf_debug_simple(COLOR_INFO, "executing join state routine");
                 // state_join_logic(cmd_ptr);
                 break;
             case STATE_END:
+                printf_debug_simple(COLOR_INFO, "executing end state routine");
                 // state_end_logic(cmd_ptr);
                 break;
             default:
