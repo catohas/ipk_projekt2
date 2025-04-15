@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
@@ -17,94 +18,87 @@
 
 void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
 {
-    int rv;
-    int numbytes;
-
+    // extract message ID from the buffer
+    uint16_t msg_id = (in_buffer[1] << 8) | in_buffer[2];
+    
+    // create a separate socket for sending messages
+    if (udp_send_socket == -1) {
+        udp_send_socket = socket(AF_INET, SOCK_DGRAM, 0);
+        if (udp_send_socket == -1) {
+            perror("send socket creation failed");
+            free(in_buffer);
+            exit(EXIT_FAILURE);
+        }
+    }
+    
+    struct addrinfo hints, *servinfo;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     
-    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
+    int rv = getaddrinfo(hostname, port, &hints, &servinfo);
+    if (rv != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         free(in_buffer);
         exit(EXIT_FAILURE);
     }
-
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("client: socket");
-            free(in_buffer);
-            exit(EXIT_FAILURE);
-        }
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "client: failed to create socket\n");
-        free(in_buffer);
-        exit(EXIT_FAILURE);
-    }
-
-    printf_debug(COLOR_INFO, "size of struct before sending: %zu bytes", in_buffer_size);
-
-    // struct timeval timeout;
-    // timeout.tv_sec = floor(udp_timeout/1000);
-    // timeout.tv_usec = (udp_timeout % 1000)*1000; // msec to usec
-    // if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-    //     perror("setsockopt failed");
-    //     free(in_buffer);
-    //     exit(EXIT_FAILURE);
-    // }
-
+    
     int total_tries = 0;
     while (total_tries <= udp_retransmissions) {
-        printf_debug(COLOR_INFO, "try number: (%d/%d)", total_tries, udp_retransmissions);
         total_tries++;
-        if ((numbytes = sendto(sockfd, in_buffer, in_buffer_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
-            perror("client: sendto");
-            free(in_buffer);
-            exit(EXIT_FAILURE);
+        
+        if (sendto(udp_send_socket, in_buffer, in_buffer_size, 0, 
+                  servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+            perror("sendto");
+            continue;
         }
-        else {
-            printf_debug(COLOR_INFO, "sent %d bytes to %s", numbytes, hostname);
+        
+        printf_debug(COLOR_INFO, "sent %d bytes to server (try %d/%d)", (int)in_buffer_size, total_tries-1, udp_retransmissions);
 
-            struct timespec ts;
-            ts.tv_sec = floor(udp_timeout/1000);
-            ts.tv_nsec = (udp_timeout % 1000)*1000*1000; // msec to nsec
-            nanosleep(&ts, NULL);
+        if (total_tries == 1) {
+            for (size_t i = 0; i < in_buffer_size; i++) {
+                printf("%02x", in_buffer[i]);
+            }
+            printf("\n");
+            for (size_t i = 0; i < in_buffer_size; i++) {
+                printf("%c", in_buffer[i]);
+            }
+            printf("\n");
+        }
 
-
-            // for (size_t i = 0; i < confirmed_msg_ids_amount; i++) {
-
-            // }
-
-            // check confirmed msg ids array
-            // if id is not present wait timeout and repeat
-
-            // uint8_t recv_buffer[MAX_MSG_SIZE] = {0};
-            // if (recvfrom(sockfd, recv_buffer, MAX_MSG_SIZE, 0, p->ai_addr, &(p->ai_addrlen)) == -1) {
-            //     perror("recvfrom");
-            //     continue;
-            // }
-
-            // uint8_t *return_recv_buffer = malloc(sizeof(uint8_t)*MAX_MSG_SIZE);
-            // if (return_recv_buffer == NULL) {
-            //     perror("failed to allocate return buffer");
-            //     free(in_buffer);
-            //     exit(EXIT_FAILURE);
-            // }
-            // memcpy(return_recv_buffer, recv_buffer, MAX_MSG_SIZE);
-
-            // close(sockfd);
-            // free(in_buffer);
-
-            // return;
+        struct timespec ts;
+        ts.tv_sec = floor(udp_timeout/1000);
+        ts.tv_nsec = (udp_timeout % 1000)*1000*1000;
+        nanosleep(&ts, NULL);
+        
+        bool confirmed = false;
+        for (size_t i = 0; i < confirmed_msg_ids_amount; i++) {
+            if (confirmed_msg_ids[i] == msg_id) {
+                confirmed = true;
+                break;
+            }
+        }
+        
+        if (confirmed) {
+            printf_debug(COLOR_INFO, "message ID %d confirmed", msg_id);
+            break;
         }
     }
 
-    close(sockfd);
+    bool confirmed = false;
+    for (size_t i = 0; i < confirmed_msg_ids_amount; i++) {
+        if (confirmed_msg_ids[i] == msg_id) {
+            confirmed = true;
+            break;
+        }
+    }
+    
+    if (!confirmed) {
+        printf_debug_simple(COLOR_ERR, "message was not confirmed, would shut down...");
+    }
+    
+    freeaddrinfo(servinfo);
     free(in_buffer);
-    // return NULL;
 }
 
 void process_received_udp_message(unsigned char *buffer, int length)
