@@ -17,10 +17,10 @@ void create_reply_msg(struct Reply_MSG *reply_msg, uint16_t message_id, uint8_t 
     reply_msg->message_contents = message_contents;
 }
 
-void create_auth_msg(struct Auth_MSG *auth_msg, char *username, char *display_name, char *secret)
+void create_auth_msg(struct Auth_MSG *auth_msg, uint16_t message_id, char *username, char *display_name, char *secret)
 {
     auth_msg->type = MSG_TYPE_VAL[AUTH];
-    auth_msg->message_id = 0x0000;
+    auth_msg->message_id = message_id;
     auth_msg->username = username; 
     auth_msg->display_name = display_name;
     auth_msg->secret = secret;
