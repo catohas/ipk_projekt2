@@ -6,12 +6,14 @@
 #include "./debug.h"
 #include "./maximums.h"
 
-struct Confirm_MSG *deserialize_confirm_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Confirm_MSG *deserialize_confirm_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t);
     
-    // if (buffer_size < (sizeof(uint8_t) + sizeof(uint16_t))) {
-    //     printf_debug_simple(COLOR_ERR, "confirm msg buffer is smaller than needed");
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "confirm msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Confirm_MSG *confirm_msg = malloc(sizeof(struct Confirm_MSG));
     if (confirm_msg == NULL) {
@@ -32,14 +34,14 @@ struct Confirm_MSG *deserialize_confirm_msg(uint8_t *buffer, const size_t buffer
     return confirm_msg;
 }
 
-struct Reply_MSG *deserialize_reply_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Reply_MSG *deserialize_reply_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint16_t) + 1*sizeof(uint8_t) + 1; // 1 one byte item + 1 null byte
 
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 
-    //                        sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint8_t)*MAX_MESSAGE_CONTENT_LEN + 1; // +1 for null terminator
-    // if (buffer_size < min_size) {
-    //     printf_debug_simple(COLOR_ERR, "reply msg buffer is smaller than needed");
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "reply msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Reply_MSG *reply_msg = malloc(sizeof(struct Reply_MSG));
     if (reply_msg == NULL) {
@@ -84,15 +86,14 @@ struct Reply_MSG *deserialize_reply_msg(uint8_t *buffer, const size_t buffer_siz
     return reply_msg;
 }
 
-struct Auth_MSG *deserialize_auth_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Auth_MSG *deserialize_auth_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 3*sizeof(uint8_t) + 3; // 3 one byte items and 3 null bytes
 
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(uint8_t)*MAX_USERNAME_LEN +
-    //     sizeof(uint8_t)*MAX_DISPLAY_NAME_LEN + sizeof(uint8_t)*MAX_SECRET_LEN + 3;
-
-    // if (buffer_size < min_size) {
-    //     printf_debug_simple(COLOR_ERR, "auth msg buffer is smaller than needed");
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "auth msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Auth_MSG *auth_msg = malloc(sizeof(struct Auth_MSG));
     if (auth_msg == NULL) {
@@ -149,15 +150,14 @@ struct Auth_MSG *deserialize_auth_msg(uint8_t *buffer, const size_t buffer_size)
     return auth_msg;
 }
 
-struct Join_MSG *deserialize_join_msg(uint8_t *buffer, const size_t buffer_size) {
-    
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) +
-    //     sizeof(uint8_t)*MAX_CHANNEL_ID_LEN + sizeof(uint8_t)*MAX_DISPLAY_NAME_LEN + 2;
+struct Join_MSG *deserialize_join_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 2*sizeof(uint8_t) + 2; // 2 one byte items and 2 null bytes
 
-    // if (buffer_size < min_size) {
-    //     printf_debug_simple(COLOR_ERR, "join msg buffer is smaller than needed");
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "join msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Join_MSG *join_msg = malloc(sizeof(struct Join_MSG));
     if (join_msg == NULL) {
@@ -203,13 +203,14 @@ struct Join_MSG *deserialize_join_msg(uint8_t *buffer, const size_t buffer_size)
     return join_msg;
 }
 
-struct MSG *deserialize_msg(uint8_t *buffer, const size_t buffer_size) {
+struct MSG *deserialize_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 2*sizeof(uint8_t) + 2;
 
-    // Minimum size check (type + message_id + at least 2 null terminators)
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 2;
-    // if (buffer_size < min_size) {
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "text msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct MSG *msg = malloc(sizeof(struct MSG));
     if (msg == NULL) {
@@ -255,13 +256,14 @@ struct MSG *deserialize_msg(uint8_t *buffer, const size_t buffer_size) {
     return msg;
 }
 
-struct Err_MSG *deserialize_err_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Err_MSG *deserialize_err_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 2*sizeof(uint8_t) + 2;
 
-    // Minimum size check (type + message_id + at least 2 null terminators)
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 2;
-    // if (buffer_size < min_size) {
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "err msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Err_MSG *err_msg = malloc(sizeof(struct MSG));
     if (err_msg == NULL) {
@@ -307,13 +309,14 @@ struct Err_MSG *deserialize_err_msg(uint8_t *buffer, const size_t buffer_size) {
     return err_msg;
 }
 
-struct Bye_MSG *deserialize_bye_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Bye_MSG *deserialize_bye_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 1*sizeof(uint8_t) + 1;
 
-    // Minimum size check (type + message_id + at least 1 null terminator)
-    // const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t) + 1;
-    // if (buffer_size < min_size) {
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "bye msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Bye_MSG *bye_msg = malloc(sizeof(struct Bye_MSG));
     if (bye_msg == NULL) {
@@ -347,12 +350,14 @@ struct Bye_MSG *deserialize_bye_msg(uint8_t *buffer, const size_t buffer_size) {
     return bye_msg;
 }
 
-struct Ping_MSG *deserialize_ping_msg(uint8_t *buffer, const size_t buffer_size) {
+struct Ping_MSG *deserialize_ping_msg(uint8_t *buffer, const size_t buffer_size)
+{
+    const size_t min_size = sizeof(uint8_t) + sizeof(uint16_t);
 
-    // Validate buffer size
-    // if (buffer_size < (sizeof(uint8_t) + sizeof(uint16_t))) {
-    //     return NULL;
-    // }
+    if (buffer_size < min_size) {
+        printf_debug_simple(COLOR_ERR, "ping msg buffer is smaller than needed");
+        return NULL;
+    }
 
     struct Ping_MSG *ping_msg = malloc(sizeof(struct Ping_MSG));
     if (ping_msg == NULL) {
