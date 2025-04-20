@@ -1,8 +1,15 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "./commands.h"
 #include "./debug.h"
+#include "./serialize.h"
+#include "./deserialize.h"
 #include "./state.h"
+#include "./global.h"
+#include "./network.h"
+#include "./messages.h"
 
 void state_auth_logic(cmd_ptr cmd)
 {
@@ -14,7 +21,8 @@ void state_auth_logic(cmd_ptr cmd)
         return;
     }
     else if (cmd == cmd_rename) {
-        printf("ERROR: trying to rename while not authenticated\n");
+        printf_debug_simple(COLOR_INFO, "renaming...");
+        cmd();
     }
     else if (cmd == cmd_help) {
         cmd();
@@ -27,50 +35,29 @@ void state_auth_logic(cmd_ptr cmd)
     }
 }
 
-void handle_confirm_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
-
 void handle_reply_msg_state_auth(unsigned char *buffer, int length)
 {
-    (void)buffer;
-    (void)length;
-}
+    printf_debug_simple(COLOR_SUCCESS, "handling reply message, state: AUTH");
+    struct Reply_MSG *reply_msg = deserialize_reply_msg(buffer, length);
+    if (reply_msg->result == 1) {
+        printf("Action Success: %s\n", reply_msg->message_contents);
+        printf_debug_simple(COLOR_SUCCESS, "transitioning to state OPEN");
+        state = STATE_OPEN;
+    }
+    else if (reply_msg->result == 0) {
+        printf("Action Failure: %s\n", reply_msg->message_contents);
+    }
+    else {
+        // malformed message i guess
+    }
 
-void handle_auth_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
+    struct Confirm_MSG con_msg;
+    create_confirm_msg(&con_msg, reply_msg->message_id);
 
-void handle_join_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
+    size_t out_size;
+    uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+    send_network_msg_udp(out_buffer, out_size);
 
-void handle_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
-
-void handle_ping_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
-
-void handle_err_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-}
-
-void handle_bye_msg_state_auth(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
+    free_reply_msg(reply_msg);
+    free(out_buffer);
 }
