@@ -155,15 +155,6 @@ void process_received_udp_message(unsigned char *buffer, int length)
             }
             break;
         }
-        case 0x02: { // auth
-            printf("ERROR: Received auth message from server, that should not happen\n");
-            exit(EXIT_FAILURE);
-        }
-        case 0x03: { // join
-            printf("ERROR: Received join message from server, that should not happen\n");
-            exit(EXIT_FAILURE);
-            break;
-        }
         case 0x04: { // msg
             switch (state) {
                 case STATE_AUTH:
@@ -252,9 +243,10 @@ void process_received_udp_message(unsigned char *buffer, int length)
         }
         default: {
             printf_debug_simple(COLOR_ERR, "received malformed message, aborting...");
+
             printf("ERROR: received malformed message from server\n");
 
-            // try to send confirm message even though we received an unknown message
+            // try to send confirm message
             uint16_t msg_id = (buffer[1] << 8) | buffer[2];
             struct Confirm_MSG con_msg;
             create_confirm_msg(&con_msg, msg_id);
