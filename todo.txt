@@ -28,3 +28,21 @@ free members on deserialization malloc fail using struct free functions
 when an unknown message is received handle correctly
 on receive hostname check should be for both hostanme and ip
 cmd_auth should set username
+handle malformed reply messages
+
+message sending
+renaming
+port change
+
+ip translation
+message receiving
+
+get rid of msg handling from states
+
+try to lower default array size values to see if they automatically resize
+improve help messages
+
+put command array of strings and func pointers to different file
+validation of user inputs
+
+add packet deduplication mechanism to all message types
