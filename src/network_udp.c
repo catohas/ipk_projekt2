@@ -14,23 +14,12 @@
 #include "./messages.h"
 #include "./network.h"
 #include "./serialize.h"
+#include "./deserialize.h"
 #include "./state.h"
+#include "./id.h"
 
 void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
 {
-    // extract message ID from the buffer
-    uint16_t msg_id = (in_buffer[1] << 8) | in_buffer[2];
-    
-    // create a separate socket for sending messages
-    if (udp_send_socket == -1) {
-        udp_send_socket = socket(AF_INET, SOCK_DGRAM, 0);
-        if (udp_send_socket == -1) {
-            perror("send socket creation failed");
-            free(in_buffer);
-            exit(EXIT_FAILURE);
-        }
-    }
-    
     struct addrinfo hints, *servinfo;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
@@ -42,12 +31,30 @@ void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
         free(in_buffer);
         exit(EXIT_FAILURE);
     }
+
+    if (in_buffer[0] == 0x00) { // do not resend confirm messages
+
+        printf_debug_simple(COLOR_INFO, "sending confirm message, skipping confirm mechanism");
+        if (sendto(udp_socket, in_buffer, in_buffer_size, 0, 
+                  servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+            perror("sendto");
+            return;
+        }
+        printf_debug(COLOR_INFO, "sent %d bytes to server", (int)in_buffer_size);
+        return;
+    }
+
+    // extract message ID from the buffer
+    uint16_t msg_id = (in_buffer[1] << 8) | in_buffer[2];
+
+    // move to next message, current message already has previous id
+    confirmed_msg_ids_index++;
     
     int total_tries = 0;
     while (total_tries <= udp_retransmissions) {
         total_tries++;
         
-        if (sendto(udp_send_socket, in_buffer, in_buffer_size, 0, 
+        if (sendto(udp_socket, in_buffer, in_buffer_size, 0, 
                   servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
             perror("sendto");
             continue;
@@ -55,30 +62,41 @@ void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
         
         printf_debug(COLOR_INFO, "sent %d bytes to server (try %d/%d)", (int)in_buffer_size, total_tries-1, udp_retransmissions);
 
-        if (total_tries == 1) {
-            for (size_t i = 0; i < in_buffer_size; i++) {
-                printf("%02x", in_buffer[i]);
+        #ifdef DEBUG_PRINT
+            if (total_tries == 1) {
+                for (size_t i = 0; i < in_buffer_size; i++) {
+                    fprintf(stderr, "%02x", in_buffer[i]);
+                }
+                fprintf(stderr, "\n");
+                for (size_t i = 0; i < in_buffer_size; i++) {
+                    fprintf(stderr, "%c", in_buffer[i]);
+                }
+                fprintf(stderr, "\n");
             }
-            printf("\n");
-            for (size_t i = 0; i < in_buffer_size; i++) {
-                printf("%c", in_buffer[i]);
-            }
-            printf("\n");
-        }
+        #endif
 
         struct timespec ts;
         ts.tv_sec = floor(udp_timeout/1000);
         ts.tv_nsec = (udp_timeout % 1000)*1000*1000;
         nanosleep(&ts, NULL);
         
+        // print msg ids in confirm array
+        #ifdef DEBUG_PRINT
+            if (total_tries == 1) {
+                for (size_t i = 0; i < confirmed_msg_ids_index+3; i++) {
+                    printf_debug(COLOR_INFO, "msg id in arr: %d", confirmed_msg_ids[i]);
+                }
+            }
+        #endif
+        
         bool confirmed = false;
-        for (size_t i = 0; i < confirmed_msg_ids_amount; i++) {
+        for (size_t i = 0; i < confirmed_msg_ids_index; i++) {
             if (confirmed_msg_ids[i] == msg_id) {
                 confirmed = true;
                 break;
             }
         }
-        
+
         if (confirmed) {
             printf_debug(COLOR_INFO, "message ID %d confirmed", msg_id);
             break;
@@ -86,7 +104,7 @@ void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
     }
 
     bool confirmed = false;
-    for (size_t i = 0; i < confirmed_msg_ids_amount; i++) {
+    for (size_t i = 0; i < confirmed_msg_ids_index; i++) {
         if (confirmed_msg_ids[i] == msg_id) {
             confirmed = true;
             break;
@@ -105,28 +123,15 @@ void process_received_udp_message(unsigned char *buffer, int length)
 {
     // check msg type
     switch (buffer[0]) {
-        // confirm
-        case 0x00:
-            switch (state) {
-                case STATE_START:
-                    handle_confirm_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_confirm_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_confirm_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_confirm_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_confirm_msg_state_end(buffer, length);
-                    break;
-            }
+        case 0x00: { // confirm
+            printf_debug_simple(COLOR_SUCCESS, "handling confirm message");
+            struct Confirm_MSG *con_msg = deserialize_confirm_msg(buffer, length);
+            uint16_t id = con_msg->ref_message_id;
+            add_confirmed_msg_id(id);
+            free_confirm_msg(con_msg);
             break;
-        // reply
-        case 0x01:
+        }
+        case 0x01: { // reply
             switch (state) {
                 case STATE_START:
                     handle_reply_msg_state_start(buffer, length);
@@ -145,129 +150,131 @@ void process_received_udp_message(unsigned char *buffer, int length)
                     break;
             }
             break;
-        // auth
-        case 0x02:
+        }
+        case 0x02: { // auth
+            printf("ERROR: Received auth message from server, that should not happen\n");
+            exit(EXIT_FAILURE); // gracefully terminate, not like this
+        }
+        case 0x03: { // join
+            printf("ERROR: Received join message from server, that should not happen\n");
+            exit(EXIT_FAILURE); // gracefully terminate, not like this
+            break;
+        }
+        case 0x04: { // msg
             switch (state) {
-                case STATE_START:
-                    handle_auth_msg_state_start(buffer, length);
-                    break;
                 case STATE_AUTH:
-                    handle_auth_msg_state_auth(buffer, length);
-                    break;
                 case STATE_OPEN:
-                    handle_auth_msg_state_open(buffer, length);
-                    break;
                 case STATE_JOIN:
-                    handle_auth_msg_state_join(buffer, length);
+                    printf_debug_simple(COLOR_SUCCESS, "handling normal message");
+
+                    struct MSG *msg = deserialize_msg(buffer, length);
+
+                    if (!is_message_duplicate(msg->message_id)) {
+                        printf("%s: %s\n", msg->display_name, msg->message_contents);
+                    }
+                    
+                    struct Confirm_MSG con_msg;
+                    create_confirm_msg(&con_msg, msg->message_id);
+                    size_t out_size;
+                    uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+                    send_network_msg_udp(out_buffer, out_size);
+
+                    free_msg(msg);
+                    free(out_buffer);
+
                     break;
+                case STATE_START:
                 case STATE_END:
-                    handle_auth_msg_state_end(buffer, length);
+                    printf("ERROR: received msg when should not have\n");
                     break;
             }
             break;
-        // join
-        case 0x03:
-            switch (state) {
-                case STATE_START:
-                    handle_join_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_join_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_join_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_join_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_join_msg_state_end(buffer, length);
-                    break;
-            }
+        }
+        case 0xFD: { // ping
+            printf_debug_simple(COLOR_INFO, "got ping message, processing...");
+
+            struct Ping_MSG *ping_msg = deserialize_ping_msg(buffer, length);
+
+            struct Confirm_MSG con_msg;
+            create_confirm_msg(&con_msg, ping_msg->message_id);
+
+            size_t out_size;
+            uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+            send_network_msg_udp(out_buffer, out_size);
+            
+            free_ping_msg(ping_msg);
+            free(out_buffer);
+
             break;
-        // msg
-        case 0x04:
-            switch (state) {
-                case STATE_START:
-                    handle_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_msg_state_end(buffer, length);
-                    break;
-            }
+        }
+        case 0xFE: { // err
+            printf_debug_simple(COLOR_INFO, "got err message, processing...");
+
+            struct Err_MSG *err_msg = deserialize_err_msg(buffer, length);
+
+            printf("ERROR FROM %s: %s\n", err_msg->display_name, err_msg->message_contents);
+
+            struct Confirm_MSG con_msg;
+            create_confirm_msg(&con_msg, err_msg->message_id);
+
+            size_t out_size;
+            uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+            send_network_msg_udp(out_buffer, out_size);
+
+            free_err_msg(err_msg);
+            free(out_buffer);
+
+            exit(EXIT_SUCCESS);
+
             break;
-        // ping
-        case 0xFD:
-            switch (state) {
-                case STATE_START:
-                    handle_ping_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_ping_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_ping_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_ping_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_ping_msg_state_end(buffer, length);
-                    break;
-            }
+        }
+        case 0xFF: { // bye
+            printf_debug_simple(COLOR_INFO, "got bye message, processing...");
+
+            struct Bye_MSG *bye_msg = deserialize_bye_msg(buffer, length);
+
+            struct Confirm_MSG con_msg;
+            create_confirm_msg(&con_msg, bye_msg->message_id);
+
+            size_t out_size;
+            uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+            send_network_msg_udp(out_buffer, out_size);
+
+            free_bye_msg(bye_msg);
+            free(out_buffer);
+
+            exit(EXIT_SUCCESS);
+
             break;
-        // err
-        case 0xFE:
-            switch (state) {
-                case STATE_START:
-                    handle_err_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_err_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_err_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_err_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_err_msg_state_end(buffer, length);
-                    break;
-            }
+        }
+        default: {
+            printf_debug_simple(COLOR_ERR, "received malformed message, aborting...");
+            printf("ERROR: received malformed message from server\n");
+
+            // try to send confirm message even though we received an unknown message
+            uint16_t msg_id = (buffer[1] << 8) | buffer[2];
+            struct Confirm_MSG con_msg;
+            create_confirm_msg(&con_msg, msg_id);
+            size_t buffer_size;
+            uint8_t *in_buffer = serialize_confirm_msg(&con_msg, &buffer_size);
+
+            send_network_msg_udp(in_buffer, buffer_size);
+
+            free(in_buffer);
+
+            struct Err_MSG err_msg;
+            char err_string[] = "received malformed message from server";
+            create_err_msg(&err_msg, confirmed_msg_ids_index, display_name, err_string);
+            in_buffer = serialize_err_msg(&err_msg, &buffer_size);
+
+            send_network_msg_udp(in_buffer, buffer_size);
+            
+            free(in_buffer);
+            
+            exit(EXIT_FAILURE);
+
             break;
-        // bye
-        case 0xFF:
-            switch (state) {
-                case STATE_START:
-                    handle_bye_msg_state_start(buffer, length);
-                    break;
-                case STATE_AUTH:
-                    handle_bye_msg_state_auth(buffer, length);
-                    break;
-                case STATE_OPEN:
-                    handle_bye_msg_state_open(buffer, length);
-                    break;
-                case STATE_JOIN:
-                    handle_bye_msg_state_join(buffer, length);
-                    break;
-                case STATE_END:
-                    handle_bye_msg_state_end(buffer, length);
-                    break;
-            }
-            break;
-        
-        default:
-            // unknown message, refer to client exception handling section
-            break;
+        }
+
     }
 }
