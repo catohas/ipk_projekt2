@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -pedantic -Wall -Wextra -pthread -lm -std=c17
 DCFLAGS = -g -pedantic -Wall -Wextra -pthread -lm -std=c17 -DDEBUG_PRINT
 
-TARGET = main
+TARGET = ipk25chat-client
 
 SRCDIR = src
 BUILDDIR = $(SRCDIR)/build
