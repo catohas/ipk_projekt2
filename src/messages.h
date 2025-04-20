@@ -63,7 +63,38 @@ static const uint8_t MSG_TYPE_VAL[] = {
     0xFF,
 };
 
-#pragma pack(1)
+// TCP
+// ---------------------------------------
+
+struct Auth_Data {
+    char *username;
+    char *display_name;
+    char *secret;
+};
+
+struct Join_Data {
+    char *channel_id;
+    char *display_name;
+};
+
+struct Msg_Data {
+    char *display_name;
+    char *message_content;
+};
+
+struct Bye_Data {
+    char *display_name;
+};
+
+struct Err_Data {
+    char *display_name;
+    char *message_content;
+};
+
+// ---------------------------------------
+
+// UDP
+// ---------------------------------------
 
 struct Confirm_MSG
 {
@@ -126,7 +157,7 @@ struct Bye_MSG
     char *display_name;
 };
 
-#pragma pack()
+// ---------------------------------------
 
 #ifdef __cplusplus
 }
