@@ -29,7 +29,6 @@ extern struct addrinfo hints, *servinfo, *p;
 extern int use_tcp_protocol;
 extern char *hostname;
 extern char *port;
-extern char server_ip[INET_ADDRSTRLEN];
 extern char display_name[MAX_DISPLAY_NAME_LEN];
 
 extern uint16_t udp_timeout;

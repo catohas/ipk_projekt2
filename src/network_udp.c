@@ -325,9 +325,7 @@ void *udp_listener(void *arg)
             continue;
         }
 
-        // only process packets from the server
         char addr[INET_ADDRSTRLEN];
-        
         // extract IP address and port from the sender
         if (their_addr.ss_family == AF_INET) {
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
@@ -337,43 +335,36 @@ void *udp_listener(void *arg)
 
         printf_debug(COLOR_INFO, "received %d bytes from %s:%d", numbytes, addr, sender_port);
 
-        // check if the packet is from our server
-        if (strcmp(addr, server_ip) == 0) {
-            
-            // change over to dynamic port on first reply msg
-            if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
+        // change over to dynamic port on first reply msg
+        if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
 
-                server_dynamic_port = sender_port;
-                printf_debug(COLOR_INFO, "updating to server's dynamic port: %s", port);
+            server_dynamic_port = sender_port;
+            printf_debug(COLOR_INFO, "updating to server's dynamic port: %s", port);
 
-                port = malloc(6); // "65535" + null byte
-                if (port == NULL) {
-                    fprintf(stderr, "failed to allocate memory\n");
-                    exit(EXIT_FAILURE);
-                }
-                snprintf(port, 6, "%d", server_dynamic_port);
-                has_changed_to_dyn_port = true;
+            port = malloc(6); // "65535" + null byte
+            if (port == NULL) {
+                fprintf(stderr, "failed to allocate memory\n");
+                exit(EXIT_FAILURE);
             }
-            
-            #ifdef DEBUG_PRINT
-                for (int i = 0; i < numbytes; i++) {
-                    fprintf(stderr, "%02x", recv_buffer[i]);
-                }
-                fprintf(stderr, "\n");
-                for (int i = 0; i < numbytes; i++) {
-                    fprintf(stderr, "%c", recv_buffer[i]);
-                }
-                fprintf(stderr, "\n");
-            #endif
-
-            recv_buffer[numbytes] = '\0';
-
-            process_received_udp_message(recv_buffer, numbytes);
-
+            snprintf(port, 6, "%d", server_dynamic_port);
+            has_changed_to_dyn_port = true;
         }
-        else {
-            printf_debug(COLOR_INFO, "ignoring packet from unknown source: %s", addr);
-        }
+        
+        #ifdef DEBUG_PRINT
+            for (int i = 0; i < numbytes; i++) {
+                fprintf(stderr, "%02x", recv_buffer[i]);
+            }
+            fprintf(stderr, "\n");
+            for (int i = 0; i < numbytes; i++) {
+                fprintf(stderr, "%c", recv_buffer[i]);
+            }
+            fprintf(stderr, "\n");
+        #endif
+
+        recv_buffer[numbytes] = '\0';
+
+        process_received_udp_message(recv_buffer, numbytes);
+
 
     }
 

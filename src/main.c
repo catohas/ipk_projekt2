@@ -64,7 +64,6 @@ struct addrinfo hints, *servinfo, *p;
 
 char *hostname = NULL;
 char *port = DEFAULT_PORT;
-char server_ip[INET_ADDRSTRLEN];
 char display_name[MAX_DISPLAY_NAME_LEN] = DEFAULT_DISPLAY_NAME;
 
 uint16_t udp_timeout = DEFAULT_UDP_TIMEOUT;
@@ -173,30 +172,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "please provide a -s flag value, hostname\n");
         return EXIT_SUCCESS;
     }
-
-    struct addrinfo hints_resolve;
-    struct addrinfo *server_info;
-
-    memset(server_ip, 0, sizeof(server_ip));
-
-    // address resolution
-    memset(&hints_resolve, 0, sizeof(hints_resolve));
-    hints_resolve.ai_family = AF_INET;
-    hints_resolve.ai_socktype = SOCK_DGRAM;
-
-    // resolve hostname to IP address
-    if (getaddrinfo(hostname, NULL, &hints_resolve, &server_info) != 0) {
-        fprintf(stderr, "ERROR: Cannot resolve hostname %s\n", hostname);
-        exit(EXIT_FAILURE);
-    }
-
-    // extract the IP address into a string
-    struct sockaddr_in *ipv4 = (struct sockaddr_in *)server_info->ai_addr;
-    inet_ntop(AF_INET, &ipv4->sin_addr, server_ip, sizeof(server_ip));
-
-    printf_debug(COLOR_SUCCESS, "Resolved %s to %s", hostname, server_ip);
-
-    freeaddrinfo(server_info);
 
     if (use_tcp_protocol) { // tcp
         if (establish_tcp_connection() < 0) {
