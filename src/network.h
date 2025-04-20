@@ -9,6 +9,7 @@
 #include "./global.h"
 
 // UDP functions
+void *udp_listener(void *arg);
 void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size);
 void process_received_udp_message(unsigned char *buffer, int length);
 
