@@ -12,19 +12,30 @@
 #include "./network.h"
 #include "./messages.h"
 #include "./serialize.h"
+#include "./validation.h"
 
 void cmd_join(void)
 {
     printf_debug_simple(COLOR_INFO, "executing cmd_join");
 
-    char channel_id[MAX_CHANNEL_ID_LEN] = {0};
+    char channel_id[MAX_CHANNEL_ID_LEN+1] = {0};
 
     line = strtok(NULL, " "); // get rid of /join
     if (line == NULL) {
         fprintf(stderr, "Please provide 'channel_id'\n");
         return;
     }
-    memcpy(channel_id, line, MAX_CHANNEL_ID_LEN);
+    strncpy(channel_id, line, MAX_CHANNEL_ID_LEN);
+
+    if (!validate_id(channel_id)) {
+        printf("ERROR: Invalid channel ID. Must be 1-20 characters from [a-zA-Z0-9_-]\n");
+        return;
+    }
+
+    if (!validate_display_name(display_name)) {
+        printf("ERROR: Invalid display name. Must be 1-20 printable characters\n");
+        return;
+    }
 
     state = STATE_JOIN;
     printf_debug_simple(COLOR_SUCCESS, "transitioned to state JOIN");

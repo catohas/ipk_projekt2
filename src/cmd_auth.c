@@ -15,34 +15,54 @@
 #include "./network.h"
 #include "./global.h"
 #include "./serialize.h"
+#include "./validation.h"
 
 void cmd_auth(void)
 {
     printf_debug_simple(COLOR_INFO, "executing cmd_auth");
 
-    char username[MAX_USERNAME_LEN] = {0};
-    char secret[MAX_SECRET_LEN] = {0};
+    char username[MAX_USERNAME_LEN+1] = {0};
+    char secret[MAX_SECRET_LEN+1] = {0};
+    char temp_display_name[MAX_DISPLAY_NAME_LEN+1] = {0};
 
     line = strtok(NULL, " "); // get rid of /auth
     if (line == NULL) {
         fprintf(stderr, "Please provide 'username' 'secret' 'display_name'\n");
         return;
     }
-    memcpy(username, line, MAX_USERNAME_LEN);
+    strncpy(username, line, MAX_USERNAME_LEN);
 
     line = strtok(NULL, " ");
     if (line == NULL) {
         fprintf(stderr, "Please provide 'username' 'secret' 'display_name'\n");
         return;
     }
-    memcpy(secret, line, MAX_SECRET_LEN);
+    strncpy(secret, line, MAX_SECRET_LEN);
 
     line = strtok(NULL, " ");
     if (line == NULL) {
         fprintf(stderr, "Please provide 'username' 'secret' 'display_name'\n");
         return;
     }
-    memcpy(display_name, line, MAX_DISPLAY_NAME_LEN);
+    strncpy(temp_display_name, line, MAX_DISPLAY_NAME_LEN);
+
+    if (!validate_id(username)) {
+        printf("ERROR: Invalid username. Must be 1-20 characters from [a-zA-Z0-9_-]\n");
+        return;
+    }
+
+    if (!validate_secret(secret)) {
+        printf("ERROR: Invalid secret. Must be 1-128 characters from [a-zA-Z0-9_-]\n");
+        return;
+    }
+
+    if (!validate_display_name(temp_display_name)) {
+        printf("ERROR: Invalid display name. Must be 1-20 printable characters\n");
+        return;
+    }
+
+    memset(display_name, 0, MAX_DISPLAY_NAME_LEN);
+    strcpy(display_name, temp_display_name);
 
     if (use_tcp_protocol) {
         state = STATE_AUTH; 
