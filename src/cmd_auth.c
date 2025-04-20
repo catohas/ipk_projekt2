@@ -44,10 +44,17 @@ void cmd_auth(void)
     }
     memcpy(display_name, line, MAX_DISPLAY_NAME_LEN);
 
-    struct Auth_MSG auth_msg;
-    create_auth_msg(&auth_msg, confirmed_msg_ids_index, username, display_name, secret);
-    size_t buffer_size;
-    uint8_t *in_buffer = serialize_auth_msg(&auth_msg, &buffer_size);
+    if (use_tcp_protocol) {
+        state = STATE_AUTH; 
+        printf_debug_simple(COLOR_SUCCESS, "transitioned to state auth");
+        send_tcp_auth_msg(username, display_name, secret);
+    }
+    else {
+        struct Auth_MSG auth_msg;
+        create_auth_msg(&auth_msg, confirmed_msg_ids_index, username, display_name, secret);
+        size_t buffer_size;
+        uint8_t *in_buffer = serialize_auth_msg(&auth_msg, &buffer_size);
+        send_network_msg_udp(in_buffer, buffer_size);
+    }
 
-    send_network_msg_udp(in_buffer, buffer_size);
 }

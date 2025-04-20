@@ -27,12 +27,17 @@ void cmd_join(void)
     memcpy(channel_id, line, MAX_CHANNEL_ID_LEN);
 
     state = STATE_JOIN;
-    printf_debug_simple(COLOR_SUCCESS, "transitioned to state join");
+    printf_debug_simple(COLOR_SUCCESS, "transitioned to state JOIN");
 
-    struct Join_MSG join_msg;
-    create_join_msg(&join_msg, confirmed_msg_ids_index, channel_id, display_name);
-    size_t buffer_size;
-    uint8_t *in_buffer = serialize_join_msg(&join_msg, &buffer_size);
+    if (use_tcp_protocol) {
+        send_tcp_join_msg(channel_id, display_name);
+    }
+    else {
+        struct Join_MSG join_msg;
+        create_join_msg(&join_msg, confirmed_msg_ids_index, channel_id, display_name);
+        size_t buffer_size;
+        uint8_t *in_buffer = serialize_join_msg(&join_msg, &buffer_size);
 
-    send_network_msg_udp(in_buffer, buffer_size);
+        send_network_msg_udp(in_buffer, buffer_size);
+    }
 }
