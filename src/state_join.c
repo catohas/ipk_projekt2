@@ -23,7 +23,7 @@ void state_join_logic(cmd_ptr cmd)
     }
     else if (cmd == cmd_join) {
         printf_debug_simple(COLOR_ERR, "trying to join while in state JOIN");
-        printf("ERROR: joining\n");
+        printf("ERROR: already joining\n");
     }
     else if (cmd == cmd_rename) {
         printf_debug_simple(COLOR_INFO, "renaming...");
