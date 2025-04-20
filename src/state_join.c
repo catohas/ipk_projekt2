@@ -43,7 +43,9 @@ void state_join_logic(cmd_ptr cmd)
 void handle_reply_msg_state_join(unsigned char *buffer, int length)
 {
     printf_debug_simple(COLOR_SUCCESS, "handling reply message, state: JOIN");
+
     struct Reply_MSG *reply_msg = deserialize_reply_msg(buffer, length);
+
     if (reply_msg->result == 1) {
         printf("Action Success: %s\n", reply_msg->message_contents);
         printf_debug_simple(COLOR_SUCCESS, "transitioning to state OPEN");
@@ -55,7 +57,9 @@ void handle_reply_msg_state_join(unsigned char *buffer, int length)
         state = STATE_OPEN;
     }
     else {
-        // malformed message i guess
+        printf("ERROR: received malformed message\n");
+        free_reply_msg(reply_msg);
+        exit(EXIT_FAILURE);
     }
 
     struct Confirm_MSG con_msg;

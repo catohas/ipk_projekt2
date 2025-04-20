@@ -43,6 +43,7 @@ void handle_reply_msg_state_open(unsigned char *buffer, int length)
     printf_debug_simple(COLOR_SUCCESS, "handling reply message, state: OPEN");
 
     struct Reply_MSG *reply_msg = deserialize_reply_msg(buffer, length);
+
     if (reply_msg->result == 1) {
         printf("Action Success: %s\n", reply_msg->message_contents);
         printf_debug_simple(COLOR_SUCCESS, "transitioning to state END");
@@ -54,7 +55,18 @@ void handle_reply_msg_state_open(unsigned char *buffer, int length)
         exit(EXIT_SUCCESS);
     }
     else {
-        // malformed message i guess
+        printf("ERROR: received malformed message\n");
+        free_reply_msg(reply_msg);
+        exit(EXIT_FAILURE);
     }
+
+    struct Confirm_MSG con_msg;
+    create_confirm_msg(&con_msg, reply_msg->message_id);
+
+    size_t out_size;
+    uint8_t *out_buffer = serialize_confirm_msg(&con_msg, &out_size);
+    send_network_msg_udp(out_buffer, out_size);
+
     free_reply_msg(reply_msg);
+    free(out_buffer);
 }
