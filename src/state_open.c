@@ -46,15 +46,15 @@ void handle_reply_msg_state_open(unsigned char *buffer, int length)
     if (reply_msg->result == 1) {
         printf("Action Success: %s\n", reply_msg->message_contents);
         printf_debug_simple(COLOR_SUCCESS, "transitioning to state END");
-        state = STATE_END;
+        exit(EXIT_SUCCESS);
     }
     else if (reply_msg->result == 0) {
         printf("Action Failure: %s\n", reply_msg->message_contents);
         printf_debug_simple(COLOR_SUCCESS, "transitioning to state END");
-        state = STATE_END;
+        exit(EXIT_SUCCESS);
     }
     else {
-        // malformed message ig
+        // malformed message i guess
     }
     free_reply_msg(reply_msg);
 }
