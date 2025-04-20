@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: state.h
+// April 2025
+
 #ifndef STATE_H__
 #define STATE_H__
 

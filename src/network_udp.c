@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: network_udp.c
+// April 2025
+
 #define _POSIX_C_SOURCE 200112L
 #define _DEFAULT_SOURCE
 

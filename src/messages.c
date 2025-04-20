@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: messages.c
+// April 2025
+
 #include <stdlib.h>
 
 #include "./messages.h"

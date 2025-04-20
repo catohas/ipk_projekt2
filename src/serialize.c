@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: serialize.c
+// April 2025
+
 #include <string.h>
 #include <stdlib.h>
 #include <arpa/inet.h>

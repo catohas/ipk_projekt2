@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: network.h
+// April 2025
+
 #ifndef NETWORK_H__
 #define NETWORK_H__
 

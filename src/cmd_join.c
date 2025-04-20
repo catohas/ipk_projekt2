@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: cmd_join.c
+// April 2025
+
 #include <stdio.h>
 #include <string.h>
 

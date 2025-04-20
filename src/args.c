@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: args.c
+// February 2025
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

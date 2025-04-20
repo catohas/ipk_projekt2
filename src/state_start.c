@@ -1,5 +1,7 @@
-#define _POSIX_C_SOURCE 200112L
-#define _DEFAULT_SOURCE
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: state_start.c
+// April 2025
 
 #include <stdio.h>
 #include <stdlib.h>

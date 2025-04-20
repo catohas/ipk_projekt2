@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: id.c 
+// April 2025
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

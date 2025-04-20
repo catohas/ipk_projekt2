@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: state_end.c
+// April 2025
+
 #include <stdint.h>
 
 #include "./debug.h"

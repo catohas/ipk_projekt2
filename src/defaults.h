@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: defaults.h
+// April 2025
+
 #ifndef DEFAULTS_H__
 #define DEFAULTS_H__
 

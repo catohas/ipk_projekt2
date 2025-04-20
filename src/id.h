@@ -1,3 +1,8 @@
+// VUT FIT - IPK Project 2
+// Author: Petr Hron (xhronpe00)
+// File: id.h
+// April 2025
+
 #ifndef ID_H__
 #define ID_H__
 
