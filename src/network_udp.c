@@ -117,7 +117,9 @@ void send_network_msg_udp(uint8_t *in_buffer, const size_t in_buffer_size)
     }
     
     if (!confirmed) {
-        printf_debug_simple(COLOR_ERR, "message was not confirmed, would shut down...");
+        printf_debug_simple(COLOR_ERR, "message was not confirmed shutting down...");
+        printf("ERROR: message with id '%d' was not confirmed\n", msg_id);
+        exit(EXIT_FAILURE);
     }
     
     freeaddrinfo(servinfo);
@@ -150,19 +152,16 @@ void process_received_udp_message(unsigned char *buffer, int length)
                 case STATE_JOIN:
                     handle_reply_msg_state_join(buffer, length);
                     break;
-                case STATE_END:
-                    handle_reply_msg_state_end(buffer, length);
-                    break;
             }
             break;
         }
         case 0x02: { // auth
             printf("ERROR: Received auth message from server, that should not happen\n");
-            exit(EXIT_FAILURE); // gracefully terminate, not like this
+            exit(EXIT_FAILURE);
         }
         case 0x03: { // join
             printf("ERROR: Received join message from server, that should not happen\n");
-            exit(EXIT_FAILURE); // gracefully terminate, not like this
+            exit(EXIT_FAILURE);
             break;
         }
         case 0x04: { // msg
@@ -189,7 +188,6 @@ void process_received_udp_message(unsigned char *buffer, int length)
 
                     break;
                 case STATE_START:
-                case STATE_END:
                     printf("ERROR: received msg when should not have\n");
                     break;
             }
