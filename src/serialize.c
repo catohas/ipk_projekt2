@@ -34,50 +34,6 @@ uint8_t *serialize_confirm_msg(struct Confirm_MSG *confirm_msg, size_t *out_size
 }
 
 /*
- *    1 byte       2 bytes       1 byte       2 bytes      
- *  +--------+--------+--------+--------+--------+--------+--------~~---------+---+
- *  |  0x01  |    MessageID    | Result |  Ref_MessageID  |  MessageContents  | 0 |
- *  +--------+--------+--------+--------+--------+--------+--------~~---------+---+
- * 
-*/
-uint8_t *serialize_reply_msg(struct Reply_MSG *reply_msg, size_t *out_size)
-{
-    *out_size = sizeof(reply_msg->type) + sizeof(reply_msg->message_id) +
-        sizeof(reply_msg->result) + sizeof(reply_msg->ref_message_id) +
-        strlen(reply_msg->message_contents) + 1; // 1 null byte
-    
-    uint8_t *buffer = malloc(*out_size);
-
-    if (buffer == NULL) {
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    size_t offset = 0;
-
-    memcpy(buffer + offset, &reply_msg->type, sizeof(reply_msg->type));
-    offset += sizeof(reply_msg->type);
-
-    uint16_t net_message_id = htons(reply_msg->message_id);
-    memcpy(buffer + offset, &net_message_id, sizeof(net_message_id));
-    offset += sizeof(net_message_id);
-
-    memcpy(buffer + offset, &reply_msg->result, sizeof(reply_msg->result));
-    offset += sizeof(reply_msg->result);
-
-    uint16_t net_ref_message_id = htons(reply_msg->ref_message_id);
-    memcpy(buffer + offset, &net_ref_message_id, sizeof(net_ref_message_id));
-    offset += sizeof(net_ref_message_id);
-
-    memcpy(buffer + offset, reply_msg->message_contents, strlen(reply_msg->message_contents));
-    offset += strlen(reply_msg->message_contents);
-
-    buffer[offset] = '\0';
-
-    return buffer;
-}
-
-/*
  *   1 byte       2 bytes      
  *  +--------+--------+--------+-----~~-----+---+-------~~------+---+----~~----+---+
  *  |  0x02  |    MessageID    |  Username  | 0 |  DisplayName  | 0 |  Secret  | 0 |
@@ -278,34 +234,6 @@ uint8_t *serialize_bye_msg(struct Bye_MSG *bye_msg, size_t *out_size)
     offset += strlen(bye_msg->display_name);
 
     buffer[offset] = '\0';
-
-    return buffer;
-}
-
-/*
- *    1 byte       2 bytes
- *  +--------+--------+--------+
- *  |  0xFD  |    MessageID    |
- *  +--------+--------+--------+
-*/
-uint8_t *serialize_ping_msg(struct Ping_MSG *ping_msg, size_t *out_size)
-{
-    *out_size = sizeof(ping_msg->type) + sizeof(ping_msg->message_id);
-
-    uint8_t *buffer = malloc(*out_size);
-
-    if (buffer == NULL) {
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    size_t offset = 0;
-
-    memcpy(buffer + offset, &ping_msg->type, sizeof(ping_msg->type));
-    offset += sizeof(ping_msg->type);
-
-    uint16_t net_message_id = htons(ping_msg->message_id);
-    memcpy(buffer + offset, &net_message_id, sizeof(net_message_id));
 
     return buffer;
 }
