@@ -6,9 +6,10 @@
 #ifndef DEBUG_H__
 #define DEBUG_H__
 
-#define COLOR_INFO  "\x1b[33m"
-#define COLOR_ERR   "\x1b[31m"
-#define COLOR_RESET "\x1b[0m"
+#define COLOR_INFO      "\x1b[33m"
+#define COLOR_SUCCESS   "\x1b[32m"
+#define COLOR_ERR       "\x1b[31m"
+#define COLOR_RESET     "\x1b[0m"
 
 #ifdef DEBUG_PRINT
     #define printf_debug_simple(level, format) \
