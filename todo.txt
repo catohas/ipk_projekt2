@@ -1,48 +1,24 @@
 - check that only allowed things are printed to stdout
-- make sure author header is in all files
-- improve help message
-- remove posix header from unneedeed files
 
-- when user enters more than 1000 msec convert to sec and msec
 - free buffer after sending in network_udp
 - check that all mallocs are being freed
 - check the getline function
 - validate input for every command (if it is wrong ignore or warn user, based on assignment)
-- make network_udp return buffer with response i guess
 
-- add deserialization and free functions to header file
-- validate input
-
-- keep a global of confirmed ids
-- on confirm message receive flag respective id
-
-make serialize and deserialize functions include msg type
-
-rename should work at all times
-make message counter just a size_t
 use a message queue
-rewrite maximums to use sizeof(uint8_t)*amount
-use strlen and memcpy for deserialization
 
 free members on deserialization malloc fail using struct free functions
 when an unknown message is received handle correctly
 on receive hostname check should be for both hostanme and ip
-cmd_auth should set username
 handle malformed reply messages
 
-message sending
-renaming
-port change
-
-ip translation
-message receiving
-
-get rid of msg handling from states
+do ip translation
 
 try to lower default array size values to see if they automatically resize
-improve help messages
 
 put command array of strings and func pointers to different file
 validation of user inputs
 
 add packet deduplication mechanism to all message types
+
+quitting works however authing and quitting segfaults
