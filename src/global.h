@@ -12,22 +12,31 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include "./maximums.h"
 #include "./state.h"
 
 extern enum APP_STATE state;
 
 extern char *line;
-extern int udp_listen_socket;
-extern int udp_send_socket;
+extern char unprocessed_line[MAX_MESSAGE_CONTENT_LEN];
+
+extern int udp_socket;
 extern struct addrinfo hints, *servinfo, *p;
 
 extern int use_tcp_protocol;
 extern char *hostname;
 extern char *port;
+extern char display_name[MAX_DISPLAY_NAME_LEN];
+
 extern uint16_t udp_timeout;
 extern uint8_t udp_retransmissions;
 
 extern uint16_t *confirmed_msg_ids;
-extern size_t confirmed_msg_ids_amount;
+extern size_t confirmed_msg_ids_index;
+extern size_t confirmed_msg_array_size;
+
+extern uint16_t *seen_ids;
+extern size_t seen_count;
+extern size_t seen_ids_array_size;
 
 #endif
