@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -21,11 +23,13 @@ extern char *line;
 extern char unprocessed_line[MAX_MESSAGE_CONTENT_LEN];
 
 extern int udp_socket;
+extern int tcp_socket;
 extern struct addrinfo hints, *servinfo, *p;
 
 extern int use_tcp_protocol;
 extern char *hostname;
 extern char *port;
+extern char server_ip[INET_ADDRSTRLEN];
 extern char display_name[MAX_DISPLAY_NAME_LEN];
 
 extern uint16_t udp_timeout;
@@ -38,5 +42,8 @@ extern size_t confirmed_msg_array_size;
 extern uint16_t *seen_ids;
 extern size_t seen_count;
 extern size_t seen_ids_array_size;
+
+extern pthread_t listener_thread;
+extern bool listener_thread_running;
 
 #endif
