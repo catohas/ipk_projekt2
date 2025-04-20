@@ -59,10 +59,12 @@ char unprocessed_line[MAX_MESSAGE_CONTENT_LEN];
 
 int use_tcp_protocol = -1;
 int udp_socket = -1;
+int tcp_socket = -1;
 struct addrinfo hints, *servinfo, *p;
 
 char *hostname = NULL;
 char *port = DEFAULT_PORT;
+char server_ip[INET_ADDRSTRLEN];
 char display_name[MAX_DISPLAY_NAME_LEN] = DEFAULT_DISPLAY_NAME;
 
 uint16_t udp_timeout = DEFAULT_UDP_TIMEOUT;
@@ -76,10 +78,10 @@ uint16_t *seen_ids;
 size_t seen_count = 0;
 size_t seen_ids_array_size = DEFAULT_SEEN_MSG_ARR_SIZE;
 
-// ---------------------------------------------
-
 pthread_t listener_thread;
 bool listener_thread_running = false;
+
+// ---------------------------------------------
 
 void *udp_listener(void *arg)
 {
@@ -109,34 +111,6 @@ void *udp_listener(void *arg)
         close(udp_socket);
         return NULL;
     }
-    
-    // int rv = getaddrinfo(hostname, port, &hints, &servinfo);
-    // if (rv != 0) {
-    //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // for (p = servinfo; p != NULL; p = p->ai_next) {
-    //     sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    //     if (sockfd == -1) {
-    //         perror("socket");
-    //         continue;
-    //     }
-
-    //     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-    //         close(sockfd);
-    //         perror("bind");
-    //         continue;
-    //     }
-    //     break;
-    // }
-
-    // if (p == NULL) {
-    //     fprintf(stderr, "Failed to create socket\n");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // freeaddrinfo(servinfo);
 
     unsigned char recv_buffer[MAX_MSG_SIZE];
     socklen_t addr_len = sizeof(struct sockaddr_storage);
@@ -158,8 +132,6 @@ void *udp_listener(void *arg)
 
         // only process packets from the server
         char addr[INET_ADDRSTRLEN];
-
-        // inet_ntop(AF_INET, &((struct sockaddr_in *)&their_addr)->sin_addr, addr, sizeof(addr));
         
         // extract IP address and port from the sender
         if (their_addr.ss_family == AF_INET) {
@@ -170,11 +142,13 @@ void *udp_listener(void *arg)
 
         printf_debug(COLOR_INFO, "received %d bytes from %s:%d", numbytes, addr, sender_port);
 
-        // change over to dynamic port
-        if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
-            if (sender_port != 0 && sender_port != atoi(port)) {
-                server_dynamic_port = sender_port;
+        // check if the packet is from our server
+        if (strcmp(addr, server_ip) == 0) {
+            
+            // change over to dynamic port on first reply msg
+            if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
 
+                server_dynamic_port = sender_port;
                 printf_debug(COLOR_INFO, "updating to server's dynamic port: %s", port);
 
                 port = malloc(6); // "65535" + null byte
@@ -185,52 +159,26 @@ void *udp_listener(void *arg)
                 snprintf(port, 6, "%d", server_dynamic_port);
                 has_changed_to_dyn_port = true;
             }
+            
+            #ifdef DEBUG_PRINT
+                for (int i = 0; i < numbytes; i++) {
+                    fprintf(stderr, "%02x", recv_buffer[i]);
+                }
+                fprintf(stderr, "\n");
+                for (int i = 0; i < numbytes; i++) {
+                    fprintf(stderr, "%c", recv_buffer[i]);
+                }
+                fprintf(stderr, "\n");
+            #endif
+
+            recv_buffer[numbytes] = '\0';
+
+            process_received_udp_message(recv_buffer, numbytes);
+
         }
-
-        recv_buffer[numbytes] = '\0';
-
-        process_received_udp_message(recv_buffer, numbytes);
-
-        
-        // check if the packet is from our server
-        // if (strcmp(addr, hostname) == 0) {
-            
-        //     // change over to dynamic port
-        //     if (recv_buffer[0] == 0x01 && !has_changed_to_dyn_port) {
-        //         if (sender_port != 0 && sender_port != atoi(port)) {
-        //             server_dynamic_port = sender_port;
-
-        //             printf_debug(COLOR_INFO, "updating to server's dynamic port: %s", port);
-
-        //             port = malloc(6); // "65535" + null byte
-        //             if (port == NULL) {
-        //                 fprintf(stderr, "failed to allocate memory\n");
-        //                 exit(EXIT_FAILURE);
-        //             }
-        //             snprintf(port, 6, "%d", server_dynamic_port);
-        //             has_changed_to_dyn_port = true;
-        //         }
-        //     }
-            
-        //     #ifdef DEBUG_PRINT
-        //         for (int i = 0; i < numbytes; i++) {
-        //             fprintf(stderr, "%02x", recv_buffer[i]);
-        //         }
-        //         fprintf(stderr, "\n");
-        //         for (int i = 0; i < numbytes; i++) {
-        //             fprintf(stderr, "%c", recv_buffer[i]);
-        //         }
-        //         fprintf(stderr, "\n");
-        //     #endif
-
-        //     recv_buffer[numbytes] = '\0';
-
-        //     process_received_udp_message(recv_buffer, numbytes);
-
-        // }
-        // else {
-        //     printf_debug(COLOR_INFO, "ignoring packet from unknown source: %s", addr);
-        // }
+        else {
+            printf_debug(COLOR_INFO, "ignoring packet from unknown source: %s", addr);
+        }
 
     }
 
@@ -241,8 +189,12 @@ static void graceful_quit(void)
 {
     printf_debug_simple(COLOR_INFO, "starting graceful shutdown...");
     
-    if (use_tcp_protocol == 0) {
-        
+    if (use_tcp_protocol) {
+        if (tcp_socket != -1) {
+            send_tcp_bye_msg(display_name);
+        }
+    }
+    else {
         struct Bye_MSG bye_msg;
         create_bye_msg(&bye_msg, confirmed_msg_ids_index, display_name);
         
@@ -257,6 +209,7 @@ static void graceful_quit(void)
     exit(EXIT_SUCCESS);
 }
 
+// ctrl+c wrapper, ctrl+d calls graceful_quit() directly
 static void handle_sigint(int sig)
 {
     (void)sig;    
@@ -267,24 +220,27 @@ static void cleanup(void)
 {
     printf_debug_simple(COLOR_SUCCESS, "cleaning up...");
 
-    if (servinfo != NULL) {
-        freeaddrinfo(servinfo);
+    if (use_tcp_protocol) {
+        cleanup_tcp();
     }
+    else {
+        if (servinfo != NULL) {
+            freeaddrinfo(servinfo);
+        }
 
-    // if (listener_thread_running) {
-    //     pthread_cancel(listener_thread);
-    //     pthread_join(listener_thread, NULL);
-    //     listener_thread_running = false;
-    // }
+        if (udp_socket != -1) {
+            close(udp_socket);
+        }
 
-    free(line);
-    free(confirmed_msg_ids);
-    free(seen_ids);
+        if (listener_thread_running) {
+            pthread_cancel(listener_thread);
+            pthread_join(listener_thread, NULL);
+            listener_thread_running = false;
+        }
 
-    if (udp_socket != -1) {
-        close(udp_socket);
+        free(confirmed_msg_ids);
+        free(seen_ids);
     }
-
 }
 
 int main(int argc, char **argv)
@@ -320,26 +276,62 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    size_t con_msg_id_arr_size = sizeof(uint16_t)*confirmed_msg_array_size;
-    confirmed_msg_ids = malloc(con_msg_id_arr_size);
-    if (confirmed_msg_ids == NULL) {
-        fprintf(stderr, "failed to allocate memory\n");
+    struct addrinfo hints_resolve;
+    struct addrinfo *server_info;
+
+    memset(server_ip, 0, sizeof(server_ip));
+
+    // address resolution
+    memset(&hints_resolve, 0, sizeof(hints_resolve));
+    hints_resolve.ai_family = AF_INET;
+    hints_resolve.ai_socktype = SOCK_DGRAM;
+
+    // resolve hostname to IP address
+    if (getaddrinfo(hostname, NULL, &hints_resolve, &server_info) != 0) {
+        fprintf(stderr, "ERROR: Cannot resolve hostname %s\n", hostname);
         exit(EXIT_FAILURE);
     }
-    for (size_t i = 0; i < DEFAULT_MSG_CONFIRM_ARR_SIZE; i++) {
-        confirmed_msg_ids[i] = -1; // default initialization, not ideal, underflows
-    }
 
-    size_t seen_ids_size = sizeof(uint16_t)*seen_ids_array_size;
-    seen_ids = malloc(seen_ids_size);
-    if (seen_ids == NULL) {
-        fprintf(stderr, "failed to allocate memory\n");
-        exit(EXIT_FAILURE);
-    }
+    // extract the IP address into a string
+    struct sockaddr_in *ipv4 = (struct sockaddr_in *)server_info->ai_addr;
+    inet_ntop(AF_INET, &ipv4->sin_addr, server_ip, sizeof(server_ip));
 
-    pthread_t listener_thread;
-    if (use_tcp_protocol == 0) { // UDP protocol
-        
+    printf_debug(COLOR_SUCCESS, "Resolved %s to %s", hostname, server_ip);
+
+    freeaddrinfo(server_info);
+
+    if (use_tcp_protocol) { // tcp
+        if (establish_tcp_connection() < 0) {
+            fprintf(stderr, "Failed to establish TCP connection\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (start_tcp_listener() < 0) {
+            fprintf(stderr, "Failed to start TCP listener thread\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else { // udp
+
+        // initialize array that holds confirmed msg ids
+        size_t con_msg_id_arr_size = sizeof(uint16_t)*confirmed_msg_array_size;
+        confirmed_msg_ids = malloc(con_msg_id_arr_size);
+        if (confirmed_msg_ids == NULL) {
+            fprintf(stderr, "failed to allocate memory\n");
+            exit(EXIT_FAILURE);
+        }
+        for (size_t i = 0; i < DEFAULT_MSG_CONFIRM_ARR_SIZE; i++) {
+            confirmed_msg_ids[i] = -1; // default initialization, not ideal, underflows
+        }
+
+        // initialize array that holds already received msg ids, used for deduplication
+        size_t seen_ids_size = sizeof(uint16_t)*seen_ids_array_size;
+        seen_ids = malloc(seen_ids_size);
+        if (seen_ids == NULL) {
+            fprintf(stderr, "failed to allocate memory\n");
+            exit(EXIT_FAILURE);
+        }
+
         if (pthread_create(&listener_thread, NULL, udp_listener, NULL) != 0) {
             perror("pthread_create");
             return EXIT_FAILURE;
@@ -353,7 +345,7 @@ int main(int argc, char **argv)
         size_t len;
         ssize_t read = getline(&line, &len, stdin);
 
-        // ctrl + d handling
+        // ctrl + d exit handling
         if (read == -1) {
             if (feof(stdin)) {
                 printf_debug_simple(COLOR_INFO, "EOF detected (ctrl+d)");
@@ -376,6 +368,7 @@ int main(int argc, char **argv)
         char *token = strtok(line, " ");
         cmd_ptr cmd_ptr;
 
+        // find if user input matches command
         for (size_t i = 0; i < ARRAY_SIZE(commands); i++) {
             if (strcmp(token, commands[i]) == 0) {
                 cmd_ptr = *command_functions[i];
@@ -404,10 +397,6 @@ int main(int argc, char **argv)
             case STATE_JOIN:
                 printf_debug_simple(COLOR_INFO, "executing join state routine");
                 state_join_logic(cmd_ptr);
-                break;
-            case STATE_END:
-                printf_debug_simple(COLOR_INFO, "executing end state routine");
-                // state_end_logic(cmd_ptr);
                 break;
             default:
                 fprintf(stderr, "invalid app state\n");
