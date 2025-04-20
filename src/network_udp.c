@@ -141,7 +141,8 @@ void process_received_udp_message(unsigned char *buffer, int length)
         case 0x01: { // reply
             switch (state) {
                 case STATE_START:
-                    handle_reply_msg_state_start(buffer, length);
+                    printf("ERROR: received reply message when should not have\n");
+                    exit(EXIT_FAILURE);
                     break;
                 case STATE_AUTH:
                     handle_reply_msg_state_auth(buffer, length);
@@ -206,7 +207,9 @@ void process_received_udp_message(unsigned char *buffer, int length)
 
             struct Err_MSG *err_msg = deserialize_err_msg(buffer, length);
 
-            printf("ERROR FROM %s: %s\n", err_msg->display_name, err_msg->message_contents);
+            if (!is_message_duplicate(err_msg->message_id)) {
+                printf("ERROR FROM %s: %s\n", err_msg->display_name, err_msg->message_contents);
+            }
 
             struct Confirm_MSG con_msg;
             create_confirm_msg(&con_msg, err_msg->message_id);
