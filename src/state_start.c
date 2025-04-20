@@ -43,11 +43,3 @@ void state_start_logic(cmd_ptr cmd)
     }
 
 }
-
-void handle_reply_msg_state_start(unsigned char *buffer, int length)
-{
-    (void)buffer;
-    (void)length;
-    printf("ERROR: received reply message when should not have\n");
-    exit(EXIT_SUCCESS);
-}
