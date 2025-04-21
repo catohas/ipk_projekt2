@@ -20,7 +20,7 @@ bool validate_id(const char *id)
     
     for (size_t i = 0; i < strlen(id); i++) {
         char c = id[i];
-        if (!(isalnum(c) || c == '_' || c == '-')) {
+        if (!(isalnum(c) || c == '_' || c == '-' || c == '.')) {
             return false;
         }
     }
